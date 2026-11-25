@@ -5,6 +5,7 @@ import time
 
 from redis import Redis
 from rq import Queue, Retry
+from rq.job import Callback
 from rq.serializers import JSONSerializer
 from sqlalchemy import select, update
 
@@ -57,7 +58,7 @@ def dispatch_pending(session, target_queue=None):
         if target.fetch_job(job_id):
             continue
         target.enqueue(
-            execute_review,
+            "codelens.jobs.execute_review",
             run.id,
             job_id=job_id,
             unique=True,
@@ -65,7 +66,7 @@ def dispatch_pending(session, target_queue=None):
             result_ttl=3600,
             failure_ttl=3600,
             retry=Retry(max=2, interval=[5, 20]),
-            on_failure=job_failed,
+            on_failure=Callback("codelens.jobs.job_failed"),
         )
         dispatched += 1
     return dispatched
@@ -82,8 +83,11 @@ def main():
                 dispatch_pending(session)
         except KeyboardInterrupt:
             return
-        except Exception:
-            logger.warning("dispatch_unavailable; database jobs retained for retry")
+        except Exception as error:
+            logger.warning(
+                "dispatch_unavailable type=%s; database jobs retained for retry",
+                type(error).__name__,
+            )
         time.sleep(2)
 
 

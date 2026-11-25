@@ -29,6 +29,7 @@ Source of truth: CodeLens Unified PRD v1.1, read in full on 2026-11-25.
 - Frontend lint, formatting, 2 tests, and TypeScript/Vite build passed.
 - Python Ruff lint/format passed. Dependency constraints refreshed.
 - Redis/RQ Compose service and dispatcher implemented; container CI verification pending push.
+- First CI run passed all unit/build checks and container startup but exposed a dispatcher module-path bug. Fixed enqueue/callback references to stable import paths; re-verification pending.
 
 ## Current next action
 Push M0 without force, inspect Actions results, fix failures before advancing.

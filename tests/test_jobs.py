@@ -19,6 +19,7 @@ def test_durable_outbox_dispatch_is_idempotent(db, monkeypatch):
         session.add(run)
         session.commit()
         assert dispatch_pending(session, queue) == 1
+        assert queue.jobs[0].func_name == "codelens.jobs.execute_review"
         assert dispatch_pending(session, queue) == 0
         run_id = run.id
     runner = SimpleWorker([queue], connection=connection, serializer=JSONSerializer)
