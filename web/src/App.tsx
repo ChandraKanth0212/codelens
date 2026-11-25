@@ -590,11 +590,18 @@ export default function App() {
                               ))}
                             </select>
                             <select
-                              aria-label="Filter analyzer"
+                              aria-label="Filter source"
                               value={source}
                               onChange={(e) => setSource(e.target.value)}
                             >
-                              <option value="all">All analyzers</option>
+                              <option value="all">All sources</option>
+                              <option value="static_analyzer">
+                                Static analyzer
+                              </option>
+                              <option value="secret_scanner">
+                                Secret scanner
+                              </option>
+                              <option value="ai">AI advisory</option>
                               {Array.from(
                                 new Set(findings.map((f) => f.analyzer)),
                               ).map((v) => (
@@ -654,6 +661,9 @@ export default function App() {
                                   </div>
                                   <div className="finding-body">
                                     <div className="finding-title">
+                                      {f.source === "ai" && (
+                                        <span>AI � Advisory � </span>
+                                      )}
                                       <h3>{f.title}</h3>
                                       <Badge value={f.severity} />
                                     </div>
@@ -702,7 +712,8 @@ export default function App() {
                               </h3>
                               <p>{run.report.ai.summary}</p>
                               <small>
-                                {run.report.ai.model} · rules-only-v1
+                                {run.report.ai.model} ·{" "}
+                                {run.report.ai.prompt_version}
                               </small>
                             </div>
                           )}
@@ -953,7 +964,7 @@ export default function App() {
                 <h2>What this release does</h2>
                 <p>
                   Ruff for Python, fixed ESLint rules for JavaScript and
-                  TypeScript, narrow redacted credential patterns, line-scoped
+                  TypeScript, selected detect-secrets detectors, line-scoped
                   findings, feedback, and optional rule explanations.
                 </p>
                 <h2>Know the limits</h2>
@@ -1006,6 +1017,7 @@ export default function App() {
             <div className="detail-tags">
               <Badge value={detail.severity} />
               <span>{detail.category}</span>
+              {detail.source === "ai" && <span>AI � Advisory</span>}
               <span>{detail.confidence} confidence</span>
             </div>
             <h2 id="finding-heading">{detail.title}</h2>

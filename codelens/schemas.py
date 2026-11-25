@@ -1,5 +1,5 @@
 import hashlib
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -26,7 +26,7 @@ class RepoConfig(BaseModel):
 
 class Finding(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    source: Literal["static_analyzer", "secret_scanner"]
+    source: Literal["static_analyzer", "secret_scanner", "ai"]
     analyzer: str
     rule_id: str
     severity: Severity
@@ -38,7 +38,9 @@ class Finding(BaseModel):
     explanation: str
     suggested_action: str
     evidence: str = "Source omitted to protect sensitive content."
-    confidence: Literal["high", "medium", "low"] = "high"
+    confidence: (
+        Literal["high", "medium", "low"] | Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
+    ) = "high"
 
     @property
     def fingerprint(self) -> str:

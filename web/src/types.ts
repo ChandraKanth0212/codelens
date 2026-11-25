@@ -21,6 +21,7 @@ export type Run = {
       advisory?: boolean;
       summary?: string;
       model?: string;
+      prompt_version?: string;
     };
   };
 };
@@ -38,7 +39,7 @@ export type Finding = {
   explanation: string;
   suggested_action: string;
   evidence: string;
-  confidence: string;
+  confidence: string | number;
   feedback: string;
 };
 export type Repo = {
@@ -81,7 +82,7 @@ export function filterFindings(
         (file === "all" || f.file_path === file) &&
         severityOrder[f.severity] <= severityOrder[threshold] &&
         (severity === "all" || f.severity === severity) &&
-        (source === "all" || f.analyzer === source) &&
+        (source === "all" || f.analyzer === source || f.source === source) &&
         (status === "all" || f.feedback === status) &&
         `${f.title} ${f.file_path} ${f.rule_id} ${f.category}`
           .toLowerCase()

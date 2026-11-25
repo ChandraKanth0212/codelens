@@ -143,6 +143,7 @@ class GitHub:
                     "max_files": min(config.max_files, base_config.max_files),
                     "max_file_bytes": min(config.max_file_bytes, base_config.max_file_bytes),
                     "max_total_bytes": min(config.max_total_bytes, base_config.max_total_bytes),
+                    "severity_threshold": base_config.severity_threshold,
                     "max_processing_seconds": min(
                         config.max_processing_seconds, base_config.max_processing_seconds
                     ),

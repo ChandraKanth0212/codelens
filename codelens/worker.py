@@ -10,7 +10,7 @@ from codelens.db import Delivery, FindingRecord, Repository, Run, Session, now
 from codelens.demo import FILES
 from codelens.diffs import added_lines
 from codelens.github import GitHub, GitHubTransientError
-from codelens.schemas import RepoConfig
+from codelens.schemas import Finding, RepoConfig
 from codelens.settings import settings
 
 logger = logging.getLogger("codelens.worker")
@@ -104,6 +104,21 @@ def process_run(run_id: int, session_factory=Session):
             if not run.is_demo and config.ai_enabled and settings().ai_enabled:
                 try:
                     ai = OpenAIExplanationProvider(settings()).explain(findings)
+                    allowed_lines = {f["path"]: added_lines(f["patch"]) for f in files}
+                    for item in ai.pop("findings", []):
+                        finding = Finding.model_validate(item)
+                        lines = allowed_lines.get(finding.file_path, set())
+                        if (
+                            finding.source == "ai"
+                            and finding.start_line <= finding.end_line
+                            and finding.end_line - finding.start_line < 1000
+                            and all(
+                                n in lines for n in range(finding.start_line, finding.end_line + 1)
+                            )
+                        ):
+                            findings.append(finding)
+                        else:
+                            ai["rejected_findings"] = ai.get("rejected_findings", 0) + 1
                 except Exception:
                     ai = {"status": "failed", "reason": "Provider unavailable or invalid response"}
                     errors.append({"analyzer": "ai", "message": ai["reason"]})

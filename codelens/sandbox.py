@@ -65,7 +65,7 @@ def validate_findings(payload: dict, files: list[dict]):
             and all(line in lines for line in range(finding.start_line, finding.end_line + 1))
         ):
             raise ValueError("Analyzer returned a location outside the approved diff")
-        if finding.analyzer not in {"ruff", "eslint", "detect-secrets"}:
+        if finding.source == "ai" or finding.analyzer not in {"ruff", "eslint", "detect-secrets"}:
             raise ValueError("Unknown analyzer")
         accepted[finding.fingerprint] = finding
     # Errors are reduced to safe fixed messages at this trust boundary.

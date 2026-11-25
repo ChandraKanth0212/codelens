@@ -89,3 +89,37 @@ def test_retention(db):
         session.commit()
         maintain(session)
         assert session.scalar(select(Run)) is None
+
+
+def test_provider_failure_preserves_static_findings(client, auth, payload, db, monkeypatch):
+    from codelens.ai import OpenAIExplanationProvider
+    from codelens.db import Repository
+    from codelens.demo import FILES
+    from codelens.github import GitHub
+    from codelens.settings import settings
+
+    monkeypatch.setenv("CODELENS_AI_ENABLED", "true")
+    settings.cache_clear()
+    with db() as session:
+        repo = session.get(Repository, 1)
+        repo.config = {**repo.config, "ai_enabled": True}
+        session.commit()
+    monkeypatch.setattr(GitHub, "__init__", lambda *args: None)
+    monkeypatch.setattr(
+        GitHub, "retrieve", lambda self, repo, number, sha, config: (FILES, [], config)
+    )
+    monkeypatch.setattr(GitHub, "close", lambda self: None)
+
+    def fail(*args):
+        raise RuntimeError("sensitive provider detail")
+
+    monkeypatch.setattr(OpenAIExplanationProvider, "explain", fail)
+    run_id = client.post("/api/v1/webhooks/github", **signed(payload)).json()["run_id"]
+    with db() as session:
+        claim(session)
+    process_run(run_id, db)
+    run = client.get(f"/api/v1/review-runs/{run_id}", headers=auth).json()
+    assert run["status"] == "partial"
+    assert run["report"]["finding_count"] >= 4
+    assert run["report"]["ai"]["status"] == "failed"
+    assert "sensitive provider detail" not in str(run)
