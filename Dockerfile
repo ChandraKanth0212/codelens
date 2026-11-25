@@ -11,6 +11,8 @@ COPY analyzer/package*.json ./
 RUN npm ci --omit=dev
 
 FROM python:3.13-slim-bookworm AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 COPY pyproject.toml requirements.lock ./
@@ -21,6 +23,7 @@ COPY --from=analyzer /build/analyzer/node_modules ./analyzer/node_modules
 COPY migrations ./migrations
 COPY alembic.ini ./
 COPY --from=web /build/web/dist ./web/dist
+RUN node --version && printf 'export const check = (x: number) => x == 1;\n' | node analyzer/scan.mjs fixture.ts
 USER 10001
 EXPOSE 8000
 CMD ["uvicorn", "codelens.api:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
