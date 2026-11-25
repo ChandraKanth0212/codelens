@@ -1,0 +1,30 @@
+[
+  {
+    "number": 1,
+    "url": "https://github.com/ChandraKanth0212/codelens-validation/pull/1",
+    "head_sha": "ca9869b3e985130697056a657252a743aa36cd2a",
+    "retrieval": "anonymous public GitHub API; NOT GitHub App authentication",
+    "files": 1,
+    "skipped": 0,
+    "rules": [
+      "F401",
+      "F821",
+      "S307"
+    ],
+    "analyzer_errors": 0
+  },
+  {
+    "number": 2,
+    "url": "https://github.com/ChandraKanth0212/codelens-validation/pull/2",
+    "head_sha": "d08cc6ec2c8041f0f122f8f38702335b9eeb7d3b",
+    "retrieval": "anonymous public GitHub API; NOT GitHub App authentication",
+    "files": 1,
+    "skipped": 0,
+    "rules": [
+      "@typescript-eslint/no-unused-vars",
+      "eqeqeq",
+      "no-eval"
+    ],
+    "analyzer_errors": 0
+  }
+]

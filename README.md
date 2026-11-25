@@ -71,6 +71,8 @@ The bootstrap operator connects repositories. Provision a reviewer or repository
 
 ## Connect GitHub
 
+Follow the [complete GitHub App setup and live-validation guide](docs/github-app-setup.md), including prepared Python/TypeScript test PRs.
+
 1. Create a GitHub App with read-only **Contents**, **Pull requests**, and **Metadata** permissions. Subscribe to **Pull request** events. No write permissions are needed.
 2. Set its webhook URL to `https://YOUR-HOST/api/v1/webhooks/github` and use the value of `CODELENS_WEBHOOK_SECRET`. Keep the dashboard private behind HTTPS.
 3. Install the App on a selected repository. Record the installation ID from its installation URL.

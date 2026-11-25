@@ -11,7 +11,7 @@ Existing baseline preserved; incremental commits, no force pushes.
 | M2 engine | CI 45616710726 passed. Ruff/ESLint/detect-secrets, limits, skipped files and non-root network-denied analyzer verified. |
 | M3 dashboard | CI 45618424688 passed. Repository-scoped users, permissions, filters and component tests. Browser visual verification remains outstanding after prior tool denial. |
 | M4 optional AI | 66 backend tests passed locally. Strict structured advisory findings, alias/reference validation, bounded calls, no source transmission, safe failures. No paid provider calls made. CI 45619101629 passed all unit/build/container checks. |
-| M5 beta | Final documentation and private security reporting configured. Source delivery checks prepared; final documentation commit CI will be verified before handoff. Version 0.1.0 is untagged; release requires approval. |
+| M5 beta | Final documentation and private security reporting configured. Source delivery verified; CI 45619765151 passed for b9f9e5f. Version 0.1.0 is untagged; release requires approval. |
 
 ## Remaining external acceptance
 - Live GitHub App installation and real webhook smoke require operator App credentials and reachable endpoint.
@@ -25,3 +25,17 @@ Existing baseline preserved; incremental commits, no force pushes.
 - GitHub private vulnerability reporting enabled and read back as true.
 - Selected offline credential detectors scanned all 81 tracked files: no matches; no tracked .env/private keys/databases. This is not comprehensive secret detection.
 - npm production dependency audits for analyzer and web: zero reported vulnerabilities.
+
+## Real-world validation milestone — 2026-11-25
+
+- Inspected clean checkout, prior status, GitHub integration, webhook/RQ processing and configuration before changes.
+- Created dedicated public synthetic repository https://github.com/ChandraKanth0212/codelens-validation with Python PR #1 and TypeScript PR #2. No real credentials or private source included.
+- Actual public GitHub PR retrieval at pinned SHAs succeeded via anonymous API, using the existing retrieval adapter. Real Ruff/ESLint found all six expected rules, zero analyzer errors. See docs/validation-evidence.json. **This does not verify GitHub App authentication or live webhook delivery.**
+- Added full signed-event -> RQ -> real analyzer -> stored report -> authenticated dashboard API tests for opened/synchronize/reopened, completed-delivery replay and tampered/missing signatures. GitHub retrieval and Redis storage are test doubles in these tests.
+- Full backend suite: 70 passed, 81% coverage. Existing Starlette/httpx TestClient deprecation warning remains; no test failures.
+- Full frontend suite: 6 passed. Browser visual QA was attempted, but the tool rejected localhost due to a saved permission/managed policy and prohibited workarounds. No visual/responsive fixes or screenshots claimed without inspection.
+- Added docs/github-app-setup.md covering App registration, minimum permissions, keys, installation, ingress/relay, Docker setup, sample PRs, idempotency, troubleshooting and browser acceptance.
+- Missing local configuration: .env, App ID, private-key path, webhook secret and allowlist; a registered installation and reachable webhook endpoint are also needed. Do not send secret values in chat.
+- GitHub Actions for this milestone will be verified after push. No release tag created.
+
+Next milestone: finish live App acceptance on the prepared PRs and browser visual/mobile/keyboard QA once credentials/ingress and browser origin access are available. No additional product features required.
