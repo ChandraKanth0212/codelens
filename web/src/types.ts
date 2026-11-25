@@ -12,6 +12,7 @@ export type Run = {
   url: string | null;
   report: {
     finding_count?: number;
+    config?: { severity_threshold?: string };
     files_reviewed?: string[];
     skipped?: { file: string; reason: string }[];
     errors?: { message: string; analyzer?: string; file?: string }[];
@@ -44,9 +45,11 @@ export type Repo = {
   id: number;
   full_name: string;
   installation_id: number;
+  can_configure: boolean;
   config: Record<string, unknown>;
 };
 export type Settings = {
+  is_operator: boolean;
   github_configured: boolean;
   webhook_configured: boolean;
   ai_enabled: boolean;
@@ -67,10 +70,16 @@ export function filterFindings(
   severity: string,
   source: string,
   status: string,
+  category = "all",
+  file = "all",
+  threshold = "info",
 ) {
   return findings
     .filter(
       (f) =>
+        (category === "all" || f.category === category) &&
+        (file === "all" || f.file_path === file) &&
+        severityOrder[f.severity] <= severityOrder[threshold] &&
         (severity === "all" || f.severity === severity) &&
         (source === "all" || f.analyzer === source) &&
         (status === "all" || f.feedback === status) &&

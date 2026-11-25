@@ -5,17 +5,19 @@ import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 
+from codelens.auth import authenticated, can_configure, operator, permitted_ids, require_repository
 from codelens.db import (
     Delivery,
     FindingRecord,
     GitHubInstallation,
     PullRequest,
     Repository,
+    RepositoryAccess,
     Run,
     get_session,
 )
@@ -31,14 +33,6 @@ async def lifespan(app):
 
 
 app = FastAPI(title="CodeLens", version="0.1.0", lifespan=lifespan)
-
-
-def authenticated(authorization: str = Header(default="")):
-    expected = settings().admin_token.get_secret_value()
-    if not expected or not hmac.compare_digest(
-        authorization.encode(), f"Bearer {expected}".encode()
-    ):
-        raise HTTPException(401, "A valid operator token is required")
 
 
 protected = [Depends(authenticated)]
@@ -64,7 +58,7 @@ def health(session=Depends(get_session)):
 
 
 @app.get("/api/v1/settings", dependencies=protected)
-def configuration():
+def configuration(principal=Depends(authenticated), session=Depends(get_session)):
     config = settings()
     return {
         "github_configured": bool(config.github_app_id and config.github_private_key_path),
@@ -73,25 +67,35 @@ def configuration():
         "retention_days": config.retention_days,
         "allowed_repositories": [
             v.strip() for v in config.allowed_repositories.split(",") if v.strip()
-        ],
-        "auth_mode": "single_operator",
+        ]
+        if principal.is_operator
+        else list(
+            session.scalars(
+                select(Repository.full_name).where(Repository.id.in_(permitted_ids(principal)))
+            )
+        ),
+        "auth_mode": "repository_tokens",
+        "is_operator": principal.is_operator,
     }
 
 
 @app.get("/api/v1/repositories", dependencies=protected)
-def repositories(session=Depends(get_session)):
+def repositories(principal=Depends(authenticated), session=Depends(get_session)):
     return [
         {
             "id": r.id,
             "full_name": r.full_name,
             "installation_id": r.installation_id,
             "config": RepoConfig.model_validate(r.config).model_dump(),
+            "can_configure": can_configure(session, principal, r.id),
         }
-        for r in session.scalars(select(Repository))
+        for r in session.scalars(
+            select(Repository).where(Repository.id.in_(permitted_ids(principal)))
+        )
     ]
 
 
-@app.post("/api/v1/repositories", dependencies=protected, status_code=201)
+@app.post("/api/v1/repositories", dependencies=[Depends(operator)], status_code=201)
 def add_repository(body: RepositoryInput, session=Depends(get_session)):
     if not settings().allows(body.full_name):
         raise HTTPException(403, "Add this repository to CODELENS_ALLOWED_REPOSITORIES first")
@@ -109,20 +113,18 @@ def add_repository(body: RepositoryInput, session=Depends(get_session)):
 
 
 @app.patch("/api/v1/repositories/{repo_id}/config", dependencies=protected)
-def configure(repo_id: int, body: RepoConfig, session=Depends(get_session)):
-    repo = session.get(Repository, repo_id)
-    if not repo:
-        raise HTTPException(404, "Repository not found")
+def configure(
+    repo_id: int, body: RepoConfig, principal=Depends(authenticated), session=Depends(get_session)
+):
+    repo = require_repository(session, principal, repo_id, write=True)
     repo.config = body.model_dump()
     session.commit()
     return repo.config
 
 
 @app.delete("/api/v1/repositories/{repo_id}", dependencies=protected, status_code=204)
-def delete_repository(repo_id: int, session=Depends(get_session)):
-    repo = session.get(Repository, repo_id)
-    if not repo:
-        raise HTTPException(404, "Repository not found")
+def delete_repository(repo_id: int, principal=Depends(authenticated), session=Depends(get_session)):
+    repo = require_repository(session, principal, repo_id, write=True)
     ids = select(Run.id).where(Run.repository_id == repo_id)
     if session.scalar(
         select(Run.id).where(Run.repository_id == repo_id, Run.status.in_(["running", "queued"]))
@@ -132,6 +134,7 @@ def delete_repository(repo_id: int, session=Depends(get_session)):
     session.execute(delete(Delivery).where(Delivery.run_id.in_(ids)))
     session.execute(delete(Run).where(Run.repository_id == repo_id))
     session.execute(delete(PullRequest).where(PullRequest.repository_id == repo_id))
+    session.execute(delete(RepositoryAccess).where(RepositoryAccess.repository_id == repo_id))
     session.delete(repo)
     session.commit()
 
@@ -156,25 +159,32 @@ def run_dict(run, repo):
 
 
 @app.get("/api/v1/review-runs", dependencies=protected)
-def runs(session=Depends(get_session)):
+def runs(principal=Depends(authenticated), session=Depends(get_session)):
     result = session.execute(
-        select(Run, Repository).join(Repository).order_by(Run.id.desc()).limit(100)
+        select(Run, Repository)
+        .join(Repository)
+        .where(Run.repository_id.in_(permitted_ids(principal)))
+        .order_by(Run.id.desc())
+        .limit(100)
     )
     return [run_dict(run, repo) for run, repo in result]
 
 
 @app.get("/api/v1/review-runs/{run_id}", dependencies=protected)
-def run_detail(run_id: int, session=Depends(get_session)):
+def run_detail(run_id: int, principal=Depends(authenticated), session=Depends(get_session)):
     run = session.get(Run, run_id)
     if not run:
         raise HTTPException(404, "Review not found")
+    require_repository(session, principal, run.repository_id)
     return run_dict(run, session.get(Repository, run.repository_id))
 
 
 @app.get("/api/v1/review-runs/{run_id}/findings", dependencies=protected)
-def findings(run_id: int, session=Depends(get_session)):
-    if not session.get(Run, run_id):
+def findings(run_id: int, principal=Depends(authenticated), session=Depends(get_session)):
+    run = session.get(Run, run_id)
+    if not run:
         raise HTTPException(404, "Review not found")
+    require_repository(session, principal, run.repository_id)
     return [
         {**f.data, "id": f.id, "fingerprint": f.fingerprint, "feedback": f.feedback}
         for f in session.scalars(select(FindingRecord).where(FindingRecord.run_id == run_id))
@@ -182,16 +192,20 @@ def findings(run_id: int, session=Depends(get_session)):
 
 
 @app.post("/api/v1/findings/{finding_id}/feedback", dependencies=protected)
-def feedback(finding_id: int, body: Feedback, session=Depends(get_session)):
+def feedback(
+    finding_id: int, body: Feedback, principal=Depends(authenticated), session=Depends(get_session)
+):
     finding = session.get(FindingRecord, finding_id)
     if not finding:
         raise HTTPException(404, "Finding not found")
+    run = session.get(Run, finding.run_id)
+    require_repository(session, principal, run.repository_id)
     finding.feedback = body.value
     session.commit()
     return {"feedback": finding.feedback}
 
 
-@app.post("/api/v1/demo", dependencies=protected, status_code=202)
+@app.post("/api/v1/demo", dependencies=[Depends(operator)], status_code=202)
 def demo(session=Depends(get_session)):
     repo = session.scalar(select(Repository).where(Repository.full_name == "demo/checkout-service"))
     if not repo:
@@ -361,10 +375,8 @@ async def webhook(request: Request, session=Depends(get_session)):
 
 
 @app.get("/api/v1/repositories/{repo_id}", dependencies=protected)
-def repository_detail(repo_id: int, session=Depends(get_session)):
-    repo = session.get(Repository, repo_id)
-    if not repo:
-        raise HTTPException(404, "Repository not found")
+def repository_detail(repo_id: int, principal=Depends(authenticated), session=Depends(get_session)):
+    repo = require_repository(session, principal, repo_id)
     return {
         "id": repo.id,
         "full_name": repo.full_name,
@@ -390,20 +402,24 @@ def pr_dict(pull):
 
 
 @app.get("/api/v1/pull-requests", dependencies=protected)
-def pull_requests(session=Depends(get_session)):
+def pull_requests(principal=Depends(authenticated), session=Depends(get_session)):
     return [
         pr_dict(pull)
         for pull in session.scalars(
-            select(PullRequest).order_by(PullRequest.updated_at.desc()).limit(100)
+            select(PullRequest)
+            .where(PullRequest.repository_id.in_(permitted_ids(principal)))
+            .order_by(PullRequest.updated_at.desc())
+            .limit(100)
         )
     ]
 
 
 @app.get("/api/v1/pull-requests/{pr_id}", dependencies=protected)
-def pull_request_detail(pr_id: int, session=Depends(get_session)):
+def pull_request_detail(pr_id: int, principal=Depends(authenticated), session=Depends(get_session)):
     pull = session.get(PullRequest, pr_id)
     if not pull:
         raise HTTPException(404, "Pull request not found")
+    require_repository(session, principal, pull.repository_id)
     return pr_dict(pull)
 
 

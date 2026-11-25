@@ -31,6 +31,23 @@ class GitHubInstallation(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True)
+    display_name: Mapped[str] = mapped_column(String(128))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class RepositoryAccess(Base):
+    __tablename__ = "repository_access"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    repository_id: Mapped[int] = mapped_column(ForeignKey("repositories.id"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20), default="reviewer")
+
+
 class Repository(Base):
     __tablename__ = "repositories"
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -39,3 +39,30 @@ describe("finding filters", () => {
     );
   });
 });
+
+it("combines category and exact file with the configured threshold", () => {
+  expect(
+    filterFindings(
+      items,
+      "",
+      "all",
+      "all",
+      "all",
+      "security",
+      "src/b.ts",
+      "high",
+    ).map((f) => f.id),
+  ).toEqual([2]);
+  expect(
+    filterFindings(
+      items,
+      "",
+      "all",
+      "all",
+      "all",
+      "maintainability",
+      "all",
+      "high",
+    ),
+  ).toEqual([]);
+});
