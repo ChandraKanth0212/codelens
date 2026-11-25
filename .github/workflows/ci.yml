@@ -1,0 +1,57 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            analyzer/package-lock.json
+      - run: pip install -c requirements.lock -e '.[dev]'
+      - run: npm ci --prefix analyzer
+      - run: npm ci --prefix web
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest --cov=codelens --cov-report=term-missing
+      - run: npm test --prefix web
+      - run: npm run build --prefix web
+      - run: alembic upgrade head
+      - run: alembic downgrade base
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python scripts/setup.py
+      - run: docker compose config --quiet
+      - run: docker compose up --build -d --wait
+      - name: Run container sample through real adapters
+        run: |
+          docker compose exec -T api python - <<'PY'
+          import json, os, time, urllib.request
+          base = 'http://localhost:8000/api/v1'
+          headers = {'Authorization': 'Bearer ' + os.environ['CODELENS_ADMIN_TOKEN']}
+          request = urllib.request.Request(base + '/demo', data=b'', headers=headers, method='POST')
+          run_id = json.load(urllib.request.urlopen(request))['run_id']
+          for _ in range(60):
+              request = urllib.request.Request(base + f'/review-runs/{run_id}', headers=headers)
+              run = json.load(urllib.request.urlopen(request))
+              if run['status'] not in ('queued', 'running'):
+                  assert run['status'] == 'completed', run
+                  assert run['report']['finding_count'] >= 4, run
+                  break
+              time.sleep(2)
+          else:
+              raise RuntimeError('Sample review timed out')
+          PY
+      - if: always()
+        run: docker compose down -v

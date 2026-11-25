@@ -1,0 +1,16 @@
+name: Bug report
+description: Report a reproducible issue using synthetic data
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include expected and actual behavior. Do not include credentials or private code.
+    validations: {required: true}
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+    validations: {required: true}
+  - type: input
+    attributes:
+      label: Version and environment
+      placeholder: CodeLens version, OS, Python, Node, Docker

@@ -1,0 +1,83 @@
+{
+  "synthetic_demo": true,
+  "repository": "demo/checkout-service",
+  "head_sha": "a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4",
+  "notice": "Real analyzer output from synthetic fixtures; no live GitHub review was performed.",
+  "findings": [
+    {
+      "source": "static_analyzer",
+      "analyzer": "ruff",
+      "rule_id": "F401",
+      "severity": "low",
+      "category": "maintainability",
+      "title": "Unused import",
+      "file_path": "src/payments.py",
+      "start_line": 1,
+      "end_line": 1,
+      "explanation": "ruff reported F401 on an added line. Source values are not retained.",
+      "suggested_action": "Remove the import or use it explicitly.",
+      "evidence": "Source omitted to protect sensitive content.",
+      "confidence": "high"
+    },
+    {
+      "source": "static_analyzer",
+      "analyzer": "ruff",
+      "rule_id": "F821",
+      "severity": "medium",
+      "category": "correctness",
+      "title": "Undefined name",
+      "file_path": "src/payments.py",
+      "start_line": 4,
+      "end_line": 4,
+      "explanation": "ruff reported F821 on an added line. Source values are not retained.",
+      "suggested_action": "Define or import the name before using it.",
+      "evidence": "Source omitted to protect sensitive content.",
+      "confidence": "high"
+    },
+    {
+      "source": "static_analyzer",
+      "analyzer": "ruff",
+      "rule_id": "S307",
+      "severity": "high",
+      "category": "security",
+      "title": "Dynamic code evaluation",
+      "file_path": "src/payments.py",
+      "start_line": 7,
+      "end_line": 7,
+      "explanation": "ruff reported S307 on an added line. Source values are not retained.",
+      "suggested_action": "Use explicit parsing instead of eval.",
+      "evidence": "Source omitted to protect sensitive content.",
+      "confidence": "high"
+    },
+    {
+      "source": "static_analyzer",
+      "analyzer": "eslint",
+      "rule_id": "@typescript-eslint/no-unused-vars",
+      "severity": "low",
+      "category": "maintainability",
+      "title": "Unused variable",
+      "file_path": "src/checkout.ts",
+      "start_line": 2,
+      "end_line": 2,
+      "explanation": "eslint reported @typescript-eslint/no-unused-vars on an added line. Source values are not retained.",
+      "suggested_action": "Remove the variable or use it explicitly.",
+      "evidence": "Source omitted to protect sensitive content.",
+      "confidence": "high"
+    },
+    {
+      "source": "static_analyzer",
+      "analyzer": "eslint",
+      "rule_id": "eqeqeq",
+      "severity": "low",
+      "category": "maintainability",
+      "title": "Coercive equality comparison",
+      "file_path": "src/checkout.ts",
+      "start_line": 3,
+      "end_line": 3,
+      "explanation": "eslint reported eqeqeq on an added line. Source values are not retained.",
+      "suggested_action": "Use === or !== to avoid implicit conversion.",
+      "evidence": "Source omitted to protect sensitive content.",
+      "confidence": "high"
+    }
+  ]
+}

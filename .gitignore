@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+*.db
+*.db-*
+.coverage
+htmlcov/
+node_modules/
+dist/
+*.pem
+work/
+*.tsbuildinfo
+compose.override.yaml

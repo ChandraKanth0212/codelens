@@ -1,0 +1,10 @@
+name: Contributor starter task
+description: Propose a small, well-scoped contribution
+body:
+  - type: textarea
+    attributes:
+      label: Scope and acceptance criteria
+    validations: {required: true}
+  - type: textarea
+    attributes:
+      label: Relevant files and suggested tests
