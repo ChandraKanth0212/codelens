@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,6 +10,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./codelens.db"
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
     job_timeout: int = Field(default=300, ge=30, le=600)
+    analyzer_mode: Literal["local", "spool"] = "local"
+    analysis_directory: str = "/analysis"
     admin_token: SecretStr = SecretStr("")
     webhook_secret: SecretStr = SecretStr("")
     github_app_id: str = ""

@@ -4,6 +4,7 @@ x-app: &app
   environment:
     CODELENS_DATABASE_URL: postgresql+psycopg://codelens:codelens-local@db:5432/codelens
     CODELENS_REDIS_URL: redis://redis:6379/0
+    CODELENS_ANALYZER_MODE: spool
   read_only: true
   tmpfs:
     - /tmp:size=64m,mode=1777
@@ -57,10 +58,26 @@ services:
       retries: 3
   worker:
     <<: *app
+    volumes:
+      - analysis-spool:/analysis
     command: [rq, worker, --url, "redis://redis:6379/0", --serializer, rq.serializers.JSONSerializer, --with-scheduler, reviews]
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
+    restart: unless-stopped
+  analyzer:
+    build: .
+    command: [python, -m, codelens.sandbox]
+    network_mode: none
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    volumes:
+      - analysis-spool:/analysis
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 64
     restart: unless-stopped
   dispatcher:
     <<: *app
@@ -73,3 +90,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  analysis-spool:

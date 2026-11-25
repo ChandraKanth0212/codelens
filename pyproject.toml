@@ -11,7 +11,7 @@ dependencies = [
   "fastapi>=0.115,<1", "uvicorn>=0.32,<1", "sqlalchemy>=2.0,<3",
   "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4", "httpx>=0.28,<1",
   "pydantic-settings>=2.6,<3", "PyJWT[crypto]>=2.10,<3",
-  "PyYAML>=6.0.2,<7", "ruff==0.11.13", "redis>=6,<8", "rq>=2.6,<3"
+  "PyYAML>=6.0.2,<7", "ruff==0.11.13", "redis>=6,<8", "rq>=2.6,<3", "detect-secrets==1.5.0"
 ]
 
 [project.optional-dependencies]

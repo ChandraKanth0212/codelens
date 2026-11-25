@@ -18,7 +18,8 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 COPY pyproject.toml requirements.lock ./
 COPY codelens ./codelens
-RUN pip install --no-cache-dir -c requirements.lock . && useradd --uid 10001 --create-home codelens
+RUN pip install --no-cache-dir -c requirements.lock . && useradd --uid 10001 --create-home codelens \
+    && mkdir /analysis && chown 10001:10001 /analysis
 COPY analyzer ./analyzer
 COPY --from=analyzer /build/analyzer/node_modules ./analyzer/node_modules
 COPY migrations ./migrations

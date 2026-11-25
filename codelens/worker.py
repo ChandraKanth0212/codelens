@@ -18,11 +18,20 @@ logger = logging.getLogger("codelens.worker")
 
 def analyze(files: list[dict], config: RepoConfig):
     findings, errors = {}, []
+    deadline = time.monotonic() + config.max_processing_seconds
     for file in files:
         path, content = file["path"], file["content"]
         lines = added_lines(file["patch"])
         adapters = ["ruff" if path.endswith(".py") else "eslint", "secrets"]
         for analyzer in adapters:
+            if time.monotonic() >= deadline:
+                errors.append(
+                    {
+                        "analyzer": "pipeline",
+                        "message": "Analysis processing-time limit reached; remaining checks skipped.",
+                    }
+                )
+                return list(findings.values()), errors
             if analyzer not in config.analyzers:
                 continue
             try:
@@ -85,7 +94,12 @@ def process_run(run_id: int, session_factory=Session):
                     )
                 finally:
                     github.close()
-            findings, errors = analyze(files, config)
+            if settings().analyzer_mode == "spool":
+                from codelens.sandbox import request_analysis
+
+                findings, errors = request_analysis(files, config)
+            else:
+                findings, errors = analyze(files, config)
             ai = {"status": "disabled"}
             if not run.is_demo and config.ai_enabled and settings().ai_enabled:
                 try:

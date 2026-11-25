@@ -19,9 +19,13 @@ class RepoConfig(BaseModel):
     max_files: int = Field(default=20, ge=1, le=100)
     max_file_bytes: int = Field(default=100_000, ge=1000, le=200_000)
     max_total_bytes: int = Field(default=500_000, ge=1000, le=1_000_000)
+    max_processing_seconds: int = Field(default=120, ge=5, le=240)
+    severity_threshold: Severity = "info"
+    github_feedback_enabled: Literal[False] = False
 
 
 class Finding(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     source: Literal["static_analyzer", "secret_scanner"]
     analyzer: str
     rule_id: str

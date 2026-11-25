@@ -2,22 +2,18 @@
 
 import json
 import os
-import re
 import shutil
 import subprocess
 from pathlib import Path
 
+from detect_secrets.plugins.aws import AWSKeyDetector
+from detect_secrets.plugins.github_token import GitHubTokenDetector
+from detect_secrets.plugins.private_key import PrivateKeyDetector
+
 from codelens.schemas import Finding
 
 ROOT = Path(__file__).resolve().parent.parent
-SECRET_PATTERNS = [
-    ("private-key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
-    (
-        "github-token",
-        re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,255}|github_pat_[A-Za-z0-9_]{50,255})\b"),
-    ),
-    ("aws-access-id", re.compile(r"\bAKIA[A-Z0-9]{16}\b")),
-]
+SECRET_DETECTORS = [PrivateKeyDetector(), GitHubTokenDetector(), AWSKeyDetector()]
 
 
 def secrets(path: str, content: str, lines: set[int]) -> list[Finding]:
@@ -25,13 +21,14 @@ def secrets(path: str, content: str, lines: set[int]) -> list[Finding]:
     for number, text in enumerate(content.splitlines(), 1):
         if number not in lines:
             continue
-        for rule, pattern in SECRET_PATTERNS:
-            if pattern.search(text):
+        for detector in SECRET_DETECTORS:
+            # analyze_string is offline. Never call verify/analyze_line or load custom plugins.
+            if next(detector.analyze_string(text), None) is not None:
                 found.append(
                     Finding(
                         source="secret_scanner",
-                        analyzer="codelens-secrets",
-                        rule_id=rule,
+                        analyzer="detect-secrets",
+                        rule_id=type(detector).__name__,
                         severity="critical",
                         category="security",
                         title="Possible exposed credential",

@@ -12,9 +12,9 @@ Source of truth: CodeLens Unified PRD v1.1, read in full on 2026-11-25.
 | Milestone | State | Remaining |
 | --- | --- | --- |
 | M0 foundation | Verified | CI run 45614994342 passed unit/build checks and fresh PostgreSQL/Redis/RQ container review at d776fb9. |
-| M1 GitHub | Implemented; local tests passed | 51 backend tests and migration upgrade/downgrade/re-upgrade passed. Live App install awaits credentials; CI queued on push. |
-| M2 analysis | In progress | Network-isolated runner, bounded processing, accurate skip reasons. |
-| M3 dashboard/auth | Existing baseline; audit pending | Object-level user authorization, filters, browser tests. |
+| M1 GitHub | Verified with fixtures | 51 backend tests and migration cycle passed; CI run 45616043924 passed. Live App install awaits credentials. |
+| M2 analysis | Implemented; local tests passed | 55 backend tests passed; isolated spool, offline detect-secrets, safe skips and processing budget implemented. Container isolation checks pending CI. |
+| M3 dashboard/auth | In progress | Object-level user authorization, filters, browser tests. |
 | M4 AI | Existing limited adapter; audit pending | PRD structured findings, reference validation, privacy/failure tests. |
 | M5 beta | Pending | Final security/docs/demo checks; verified GitHub delivery. Release tag requires approval. |
 
@@ -34,4 +34,4 @@ Source of truth: CodeLens Unified PRD v1.1, read in full on 2026-11-25.
 - Build-time TypeScript smoke passed, exposing a separate RQ import-root issue: the CLI loaded the installed Python copy, whose relative analyzer directory was absent. Set trusted `/app` on PYTHONPATH; container re-verification pending. The prior runtime-library hypothesis was not the complete cause.
 
 ## Current next action
-Implement M2 sandboxed analyzer service and resource/skip tests. Live GitHub App credentials remain absent; no live App review claimed.
+Verify M2 CI and implement M3 object-level authorization and dashboard tests. Live GitHub App credentials remain absent; no live App review claimed.

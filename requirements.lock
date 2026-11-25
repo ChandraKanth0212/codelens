@@ -4,11 +4,13 @@ annotated-types==0.8.0
 anyio==4.16.0
 certifi==2026.11.20
 cffi==2.1.1
+charset-normalizer==3.5.3
 click==8.5.1
 colorama==0.4.6
 coverage==7.17.5
 croniter==7.0.0
 cryptography==50.0.2
+detect-secrets==1.5.0
 fakeredis==2.41.0
 fastapi==0.165.0
 h11==0.16.0
@@ -36,6 +38,7 @@ python-dateutil==4.0.0
 python-dotenv==1.2.4
 PyYAML==6.0.4
 redis==7.4.1
+requests==2.34.2
 rq==2.12.0
 ruff==0.11.13
 sortedcontainers==2.4.0
@@ -44,4 +47,5 @@ starlette==1.10.0
 typing-inspection==0.4.5
 typing_extensions==4.16.0
 tzdata==2026.6
+urllib3==2.8.0
 uvicorn==0.54.0

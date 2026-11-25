@@ -36,24 +36,29 @@ jobs:
       - run: python scripts/setup.py
       - run: docker compose config --quiet
       - run: docker compose up --build -d --wait
+      - name: Verify analyzer isolation
+        run: |
+          test "$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$(docker compose ps -q analyzer)")" = none
+          docker compose exec -T analyzer python -c "import os; assert os.getuid() != 0; assert not os.getenv('CODELENS_ADMIN_TOKEN'); assert not os.getenv('CODELENS_GITHUB_PRIVATE_KEY_PATH')"
       - name: Run container sample through real adapters
         run: |
           docker compose exec -T api python - <<'PY'
           import json, os, time, urllib.request
           base = 'http://localhost:8000/api/v1'
           headers = {'Authorization': 'Bearer ' + os.environ['CODELENS_ADMIN_TOKEN']}
-          request = urllib.request.Request(base + '/demo', data=b'', headers=headers, method='POST')
-          run_id = json.load(urllib.request.urlopen(request))['run_id']
-          for _ in range(60):
-              request = urllib.request.Request(base + f'/review-runs/{run_id}', headers=headers)
-              run = json.load(urllib.request.urlopen(request))
-              if run['status'] not in ('queued', 'running'):
-                  assert run['status'] == 'completed', run
-                  assert run['report']['finding_count'] >= 4, run
-                  break
-              time.sleep(2)
-          else:
-              raise RuntimeError('Sample review timed out')
+          for generation in range(2):
+              request = urllib.request.Request(base + '/demo', data=b'', headers=headers, method='POST')
+              run_id = json.load(urllib.request.urlopen(request))['run_id']
+              for _ in range(60):
+                  request = urllib.request.Request(base + f'/review-runs/{run_id}', headers=headers)
+                  run = json.load(urllib.request.urlopen(request))
+                  if run['status'] not in ('queued', 'running'):
+                      assert run['status'] == 'completed', run
+                      assert run['report']['finding_count'] >= 4, run
+                      break
+                  time.sleep(2)
+              else:
+                  raise RuntimeError('Sample review timed out')
           PY
       - if: always()
         run: docker compose logs --no-color

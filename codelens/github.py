@@ -20,6 +20,10 @@ class GitHubTransientError(GitHubError):
     """Safe error eligible for bounded job retry."""
 
 
+class SkipFile(GitHubError):
+    """A known safe file exclusion, not a failed review."""
+
+
 class GitHub:
     def __init__(self, config: Settings, installation: int):
         if not config.github_app_id or not config.github_private_key_path:
@@ -109,13 +113,16 @@ class GitHub:
             or result.get("type") != "file"
             or result.get("size", limit + 1) > limit
         ):
-            raise GitHubError("File is not a regular text file or exceeds size limit")
+            raise SkipFile("Not a regular file or exceeds per-file size limit")
         if result.get("encoding") != "base64":
             raise GitHubError("Unsupported content encoding")
         value = base64.b64decode(result["content"])
         if len(value) > limit or b"\x00" in value:
-            raise GitHubError("Binary or oversized content")
-        return value.decode("utf-8")
+            raise SkipFile("Binary or oversized content")
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            raise SkipFile("Unsupported text encoding") from None
 
     def retrieve(self, repo: str, number: int, sha: str, config: RepoConfig):
         pr = self.request("GET", f"/repos/{repo}/pulls/{number}")
@@ -136,6 +143,9 @@ class GitHub:
                     "max_files": min(config.max_files, base_config.max_files),
                     "max_file_bytes": min(config.max_file_bytes, base_config.max_file_bytes),
                     "max_total_bytes": min(config.max_total_bytes, base_config.max_total_bytes),
+                    "max_processing_seconds": min(
+                        config.max_processing_seconds, base_config.max_processing_seconds
+                    ),
                 }
             )
         except FileNotFoundError:
@@ -157,7 +167,11 @@ class GitHub:
                 skipped.append({"file": path, "reason": reason})
                 continue
             patch = file["patch"]
-            content = self.content(repo, path, sha, config.max_file_bytes)
+            try:
+                content = self.content(repo, path, sha, config.max_file_bytes)
+            except SkipFile as error:
+                skipped.append({"file": path, "reason": str(error)})
+                continue
             total += len(content.encode()) + len(patch.encode())
             if total > config.max_total_bytes:
                 raise GitHubError("Review byte budget exceeded")
