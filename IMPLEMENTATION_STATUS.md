@@ -19,7 +19,7 @@ Existing baseline preserved; incremental commits, no force pushes.
 - No hosted deployment or paid provider verification performed.
 - Docker/WSL unavailable locally; container checks run in GitHub Actions.
 
-## Final verification
+## Prior beta verification
 - Backend: 66 tests passed. Frontend: 6 tests passed, including completed review, filters, advisory detail and escaped output.
 - Python/TypeScript lint, formatting and production build passed; migrations upgrade/downgrade tested.
 - GitHub private vulnerability reporting enabled and read back as true.
@@ -36,6 +36,7 @@ Existing baseline preserved; incremental commits, no force pushes.
 - Full frontend suite: 6 passed. Browser visual QA was attempted, but the tool rejected localhost due to a saved permission/managed policy and prohibited workarounds. No visual/responsive fixes or screenshots claimed without inspection.
 - Added docs/github-app-setup.md covering App registration, minimum permissions, keys, installation, ingress/relay, Docker setup, sample PRs, idempotency, troubleshooting and browser acceptance.
 - Missing local configuration: .env, App ID, private-key path, webhook secret and allowlist; a registered installation and reachable webhook endpoint are also needed. Do not send secret values in chat.
-- GitHub Actions for this milestone will be verified after push. No release tag created.
+- GitHub Actions run [45625666975](https://github.com/ChandraKanth0212/codelens/actions/runs/45625666975) passed for validation commit `a428803`: backend/frontend tests, lint/format/build, migration cycle, fresh Compose startup, analyzer isolation and repeated real sample reviews.
+- Frontend lint, formatting and production build passed locally. Preview process stopped after browser denial. No release tag created.
 
 Next milestone: finish live App acceptance on the prepared PRs and browser visual/mobile/keyboard QA once credentials/ingress and browser origin access are available. No additional product features required.
