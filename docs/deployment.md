@@ -22,7 +22,7 @@ The non-root worker must be able to read the mounted file. Prefer a secrets mana
 | Symptom | Check |
 | --- | --- |
 | Startup refuses to run | Set a random operator token at least 32 characters long. |
-| Run remains queued | Start `python -m codelens.worker` with the same database settings. |
+| Run remains queued | Check `docker compose logs dispatcher worker analyzer redis`. For the non-Docker shortcut, start `python -m codelens.worker`. |
 | Ruff/ESLint partial result | Activate the venv; run `npm ci --prefix analyzer`; confirm Node is in PATH. |
 | Webhook 401 | Match the App secret to the server; preserve the exact raw request body. |
 | Webhook 403 | Match the allowlisted repository, registered repository, and installation ID. |
@@ -35,7 +35,7 @@ The API intentionally withholds raw exceptions because they may contain credenti
 
 ## Data deletion
 
-`DELETE /api/v1/repositories/{id}` with the operator bearer token removes associated findings, runs, and delivery records after active work completes. Removing a repository from the environment allowlist prevents future live reviews. `CODELENS_RETENTION_DAYS` controls terminal-run retention (default 30); the worker periodically applies it. Deleted delivery IDs no longer prevent replay; commit deduplication also lasts only as long as the run record. Keep GitHub delivery records and database backups under an explicit operator policy.
+`DELETE /api/v1/repositories/{id}` with an operator or repository-owner token removes grants, PRs, findings, runs and deliveries; active jobs cause a conflict response, so retry after completion. Removing a repository from the environment allowlist prevents future live reviews. `CODELENS_RETENTION_DAYS` controls terminal-run retention (default 30); the dispatcher periodically applies it (also the direct development worker). Deleted delivery IDs no longer prevent replay; commit deduplication also lasts only as long as the run record. Keep GitHub delivery records and database backups under an explicit operator policy.
 
 ## Operational limitations
 

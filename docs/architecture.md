@@ -1,40 +1,23 @@
-# Architecture decisions
+# Architecture
 
-Historical beta decisions below are superseded where noted by [ADR-007](architecture/0007-unified-prd-foundation.md). Unified PRD v1.1 work and verified milestone state are tracked in [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md).
+CodeLens is a modular monolith. FastAPI serves the API and built React assets. PostgreSQL persists installations, repositories, PRs, deliveries, runs, findings, users and grants. Alembic manages schema changes.
 
-## ADR-001: Modular monolith
+Signed webhooks atomically persist delivery and run records. A dispatcher reads the durable outbox and queues numeric identifiers/generations in Redis. RQ workers retrieve commit-pinned source through a read-only GitHub App. Transient GitHub failures receive bounded retries; analyzer failures produce partial reports.
 
-**Accepted.** FastAPI serves the API and built React/TypeScript assets. A separately started worker imports the same Python modules. SQLAlchemy handles persistence and Alembic records schema history. This keeps deployments understandable while preserving adapter boundaries. There is no user-code execution service.
+Compose uses a separate non-root, network-denied analyzer with bounded temporary JSON requests on a shared volume. Ruff, ESLint and selected detect-secrets detectors use trusted configurations. Project scripts, plugins and dependencies never execute. Source is transient; reports retain normalized metadata and redacted evidence. Spool files expire after ten minutes and must be excluded from backups.
 
-## ADR-002: Durable SQL queue instead of Redis + RQ
+Optional AI receives rule metadata and opaque locations only. Schema and diff-reference validation precede storing advisory findings. Failures preserve deterministic results. There are no automatic fixes, approvals, merges or GitHub comments.
 
-**Accepted deviation from the suggested stack.** ReviewRun rows are jobs. A signed webhook transaction persists its delivery and job together. PostgreSQL workers claim queued rows using `FOR UPDATE SKIP LOCKED`; the SQLite demo uses a conditional status update. This removes the failure gap between committing a database row and enqueueing in another service. Worker processes do not run inside HTTP handlers.
+Local bearer tokens enforce per-user repository grants. Operators have global bootstrap access, reviewers read assigned repositories, owners configure/delete them. Out-of-scope objects return 404. User tokens are hashed at rest and remain in browser memory.
 
-The worker recovers jobs idle for 15 minutes, up to three attempts. Configured per-file subprocess timeouts and small default limits keep normal runs short. Multiple workers are supported on PostgreSQL, but lease renewal and strong fencing for exceptionally long runs are future work; run one worker for this beta. Queue admission counts queued/running rows with a configured soft cap (100). Concurrent webhook transactions may briefly exceed that soft cap. It is not a distributed quota or public internet rate limiter.
+## Decisions
 
-## ADR-003: One authenticated operator
+- [Foundation and RQ outbox](architecture/0007-unified-prd-foundation.md)
+- [GitHub ingestion](architecture/0008-github-ingestion.md)
+- [Analyzer isolation and detectors](architecture/0009-analyzer-isolation.md)
+- [Repository access](architecture/0010-repository-access.md)
+- [Structured advisory AI](architecture/0011-advisory-ai.md)
 
-**Accepted MVP simplification.** A high-entropy bearer token grants access to all registered repositories in one deployment. It is held only in browser memory. GitHub webhooks use an independent HMAC secret and require both an operator allowlist and registered installation ID. This is not multi-user tenancy, GitHub OAuth, or per-user RBAC. Do not share one deployment between unrelated organizations.
+These supersede the earlier SQL-only queue, single-operator auth and worker-process analysis. Existing plain CSS was retained instead of a Tailwind rewrite.
 
-## ADR-004: Fixed analyzer policy
-
-**Accepted.** Ruff runs with `--isolated` and fixed rules. ESLint uses `overrideConfigFile: true` and an embedded trusted configuration. No files from the PR are written or executed; text is passed through stdin. Project ESLint plugins/configs and Python import paths are never loaded. Output is reduced to rule and line metadata to avoid retaining secrets or source identifiers. Findings outside added lines are discarded; duplicates use a stable SHA256 fingerprint.
-
-Compose runs the worker non-root with dropped capabilities, a read-only filesystem, CPU/memory/PID limits, and a bounded temp filesystem. This is worker-level isolation, not a per-analyzer network namespace. The worker needs GitHub access. Analyzer child environments omit application credentials, but subprocesses are not a complete security boundary against parser exploits. Strong per-process/container sandboxing with network denied is a pre-production hardening task.
-
-## ADR-005: Evidence-only AI
-
-**Accepted scope reduction.** The first adapter explains deterministic rule IDs rather than inventing findings from source. A provider Protocol allows substitution. The HTTP call has a 20-second timeout, bounded input/output, and strict response validation. No retries are attempted for AI calls. Raw response bodies/errors are not persisted. AI summaries cannot introduce inline locations because they are not modeled as findings.
-
-## ADR-006: Privacy and retention
-
-**Accepted.** Persist PR metadata, exact SHAs, normalized findings, feedback, run errors, and delivery IDs. Source and diffs are transient. Reports deliberately omit code excerpts. Credential matching only emits a redacted placeholder. Cleanup deletes terminal runs older than 30 days by default; repository deletion removes associated rows and is refused during active jobs. Backups follow operator policy. Disk encryption and TLS are operator responsibilities.
-
-## Boundaries and sources
-
-- [GitHub signature validation](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)
-- [GitHub App authentication](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app)
-- [Ruff configuration](https://docs.astral.sh/ruff/configuration/)
-- [ESLint configuration](https://eslint.org/docs/latest/use/configure/configuration-files)
-
-These sources informed integration choices. This document describes implemented behavior, not a security certification.
+Use one worker for this beta: stale-job lease fencing and exact distributed quotas remain future work. Proxy TLS/rate limits, storage encryption, backups and secret rotation are operator responsibilities. SQLite/direct-worker mode is a developer shortcut without Compose isolation.

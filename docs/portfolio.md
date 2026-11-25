@@ -1,21 +1,10 @@
 # Portfolio and GitHub launch guide
 
-## Publish your project
+## Published source
 
-Review the source and license, run the tests, and understand the architecture before presenting it. Create an empty GitHub repository named `codelens` under your account, then run from this folder:
+Repository: https://github.com/ChandraKanth0212/codelens (public, Apache-2.0). Source and CI are published; this does not host the running application. Private vulnerability reporting is enabled. Run the documented synthetic sample, understand the architecture and review current limitations before presenting it.
 
-```sh
-git init -b main
-git add .
-git status
-git commit -m "Build CodeLens review assistant beta"
-git remote add origin https://github.com/YOUR-USERNAME/codelens.git
-git push -u origin main
-```
-
-Inspect `git status` before committing. `.env`, databases, private keys, virtual environments, and dependency folders are ignored. Do not add them with `git add -f`. Enable private vulnerability reporting, require CI before merging, add a project description and topics, and replace the clone placeholder in README. Run the GitHub App flow against a public synthetic test repository before tagging a release.
-
-Suggested description: “Self-hosted pull request review with Ruff, ESLint, signed GitHub webhooks, and an evidence-first dashboard.” Suggested topics: `code-review`, `github-app`, `fastapi`, `react`, `typescript`, `python`, `static-analysis`, `self-hosted`.
+Keep `.env`, databases, private keys, virtual environments and dependencies out of Git. Live App installation and browser visual acceptance remain outstanding. Version 0.1.0 is untagged pending approval.
 
 ## Accurate resume entry
 
@@ -36,12 +25,12 @@ An original open-source repository belongs under **Projects** or **Open-source p
 3. Filter by severity or analyzer, open a finding, and record feedback.
 4. Show the exact SHA and explain added-line mapping and deduplication.
 5. Open settings: AI is off; if enabled it receives rule metadata only.
-6. Show tests and architecture decisions, including the SQL queue and single-operator tradeoffs.
+6. Show tests and architecture decisions, including the durable outbox, Redis/RQ, repository grants and isolated analyzers.
 
 ## Interview discussion prompts
 
-- Why is a durable SQL queue simpler than a database-plus-Redis dual write here?
+- How does the PostgreSQL outbox prevent losing jobs between database commit and Redis enqueue?
 - Why must a worker verify a PR's head before and after retrieving its file list?
 - Why must repository-controlled analyzer configuration never be executed?
 - What does a finding's absence prove, and what does it not prove?
-- What would you add for multi-tenant production use and untrusted parser isolation?
+- What would you add for multi-tenant production use and stronger worker lease fencing?

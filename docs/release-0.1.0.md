@@ -1,0 +1,11 @@
+# Proposed v0.1.0 release notes
+
+Status: source published; no tag or GitHub Release created. PRD section 11 requires user approval before tagging.
+
+CodeLens is a self-hostable PR review assistant with signed GitHub App ingestion, exact commit tracking, PostgreSQL/Redis/RQ jobs, isolated Ruff/ESLint/detect-secrets, repository-scoped local users, a React review dashboard and optional schema-validated advisory AI. Apache-2.0 licensed.
+
+Quick start: clone, run `python scripts/setup.py`, then `docker compose up --build -d`. Open localhost:8000, sign in with the generated local operator token and run the synthetic sample. See README for App setup and contributor commands.
+
+Verified: backend/frontend tests, lint/format/build, migration round trips, fresh Compose startup, isolated analyzer controls and repeated sample reviews in GitHub Actions. Exact counts and runs are recorded in IMPLEMENTATION_STATUS.md.
+
+Known limits: live App install and paid AI verification not performed; browser visual/mobile/keyboard acceptance and screenshots remain outstanding. One worker recommended; no OAuth, distributed quotas, hosted service, automatic fixes or GitHub posting. Metadata-only AI enriches existing static findings. Treat this as an early beta, not a safety guarantee.

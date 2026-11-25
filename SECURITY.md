@@ -1,32 +1,28 @@
 # Security policy
 
-## Supported release
+0.1.x is an experimental beta, not a security approval gate or comprehensive scanner.
 
-0.1.x is an experimental beta. Do not treat CodeLens as a complete security scanner or a security approval gate.
+## Private reporting
 
-## Reporting
+[Report a vulnerability privately](https://github.com/ChandraKanth0212/codelens/security/advisories/new). Private reporting is enabled and was verified through GitHub's API. If unavailable, contact the maintainer privately before sharing details. Never post credentials, private source or exploit details publicly. Include version, a synthetic reproduction and impact. Test only systems you are authorized to assess.
 
-Maintainers should enable GitHub **Private vulnerability reporting** before making the repository public. Use the repository Security tab to submit a private report. If that option is unavailable, ask the maintainer for a private contact without publishing exploit details. Never open a public issue containing private source or live credentials.
+## Controls
 
-Include affected version, a minimal synthetic reproduction, expected/observed behavior, and potential impact. Do not test against systems without authorization.
+- Constant-time raw-body HMAC validation, delivery/head-SHA deduplication and registered installation/repository checks.
+- User tokens hashed at rest, repository grants, owner/reviewer permissions and object-level tests. Separate global operator secret.
+- Fixed GitHub origin, redirects disabled, commit-pinned retrieval; base config only narrows analysis access.
+- Path, file, body and response limits; timeouts, bounded retries and container resource limits.
+- Trusted analyzer configuration; no reviewed scripts, plugins or dependencies execute.
+- Compose analyzer has no network, application credentials, DB/Redis access or key mount. Non-root, read-only root, dropped capabilities, bounded memory/CPU/PIDs.
+- AI receives no source, real paths, secret findings or PR titles. Strict schema/reference checks, advisory labels and escaped rendering. Provider failure preserves static findings.
+- Raw source, credentials and exception strings are excluded from application reports/logs. Secret findings use redacted evidence.
 
-## Implemented controls
+## Boundaries
 
-- Raw-body HMAC verification with constant-time comparison; no unsigned webhook processing.
-- Separate operator token, repository allowlist, and registered installation verification.
-- Fixed GitHub API origin; no use of webhook-provided download URLs; redirects disabled.
-- Source and configuration retrieved at commit SHAs. Base config can only narrow operator policy.
-- File count, content byte, response byte, webhook body, and analyzer timeout limits.
-- No repository configs/plugins/scripts executed. Analyzer commands use argument arrays, not a shell.
-- Analyzer child environment excludes application credentials. Reports/logs omit raw source and exceptions.
-- AI receives rule metadata only and cannot create inline findings or execute actions.
-- React escapes rendered data; no model/repository HTML execution.
-- Non-root, read-only, resource-limited Compose application containers.
+Use HTTPS and private dashboard ingress. Protect/revoke bearer tokens; the operator token has global privileges. This is not OAuth, SSO or hardened multi-tenant SaaS. Direct local-worker mode lacks container isolation. Containers do not prove safety against kernel/parser exploits; use dedicated deployments for unrelated trust domains.
 
-## Known boundaries
+Source temporarily exists in memory and the spool volume. Requests are removed before analysis, responses after consumption, abandoned files after ten minutes. Exclude the spool from backups. Encrypt storage/backups, protect the App key, and keep PostgreSQL/Redis private. Compose's database password is development-only.
 
-Single-operator authentication is not multi-tenant authorization. Use HTTPS and keep the token private. The worker needs outbound GitHub/optional AI access; analyzers currently share its network namespace. A parser exploit could cross process boundaries. Strong network-denied analyzer sandboxing is not implemented. Use a dedicated host/container and only repositories you are authorized to review.
+Only supported text files, added lines and selected rules are reviewed. There is no full type check, dependency-vulnerability scan or comprehensive secret detection. Metadata may disclose technology choices. Provider retention follows account terms; `store: false` is not a zero-retention guarantee.
 
-Detection is deliberately narrow: only supported text files, added lines, and selected rules. Full type checking, dependency vulnerabilities, and comprehensive secret detection are out of scope. Secrets can take arbitrary forms; no scanner guarantees their absence. Source is not sent to AI, but rule metadata may disclose technology choices.
-
-The queue cap is a soft admission limit under concurrent requests. Apply rate limits and request-size limits at the reverse proxy. Stale-job recovery lacks lease fencing; use one worker for the beta. Encrypt disks/backups, protect the GitHub key, rotate tokens, and review dependencies regularly. Never expose the development database or commit `.env`/private keys.
+Queue admission is a soft cap. Apply a proxy 1 MB body limit and rate limits. One worker is recommended until lease fencing is added. Deletion cannot retract provider metadata or operator backups. No external security audit or measured production performance is claimed.
