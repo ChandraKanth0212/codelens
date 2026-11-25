@@ -16,7 +16,8 @@
 ## Final self-hosting work
 - Added scripts/container_smoke.py and CI checks for API/frontend serving, reports surviving stop/start, new analysis after restart, and PostgreSQL dump/restore into a separate database.
 - Added backup/restore/restart operator commands to docs/deployment.md; ignored backup directories/dumps. Existing App setup guide covers minimal permissions, safe credentials, webhook ingress and real-event acceptance.
-- Docker unavailable locally. Enhanced container checks must pass in GitHub Actions before being reported as verified.
+- Docker unavailable locally. Enhanced checks **passed in CI [45627845755](https://github.com/ChandraKanth0212/codelens/actions/runs/45627845755) at `5343193`**: fresh Compose startup, API/frontend serving, offline/non-root/read-only analyzer and CPU/memory/PID limits, real reviews before/after stop-start, retained reports, and PostgreSQL backup/isolated restore with matching finding counts. Both test and container jobs passed.
+- Staged changes reviewed with `git diff --cached --check`; no forbidden credential/database artifacts or matches from selected credential detectors. Working source preserved, no dependency additions.
 
 ## Exact verification commands
 - `ruff check .`; `ruff format --check .`

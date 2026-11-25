@@ -9,3 +9,5 @@ Quick start: clone, run `python scripts/setup.py`, then `docker compose up --bui
 Verified: backend/frontend tests, lint/format/build, migration round trips, fresh Compose startup, isolated analyzer controls, restart/persistence, synthetic database backup/restore and repeated sample reviews in GitHub Actions. Exact counts and runs are recorded in IMPLEMENTATION_STATUS.md.
 
 Known limits: live App install and paid AI verification not performed; browser visual/mobile/keyboard acceptance and screenshots remain outstanding. One worker recommended; no OAuth, distributed quotas, hosted service, automatic fixes or GitHub posting. Metadata-only AI enriches existing static findings. Treat this as an early beta, not a safety guarantee.
+
+Final acceptance evidence: 73 backend tests (82% local coverage), 6 frontend tests, lint/format/build and migrations passed. [CI 45627845755](https://github.com/ChandraKanth0212/codelens/actions/runs/45627845755) verified application commit `5343193`, including fresh Compose, restart/persistence and isolated PostgreSQL restore. Live App/browser acceptance remains outstanding; no hosted deployment claimed.
