@@ -31,6 +31,7 @@ Source of truth: CodeLens Unified PRD v1.1, read in full on 2026-11-25.
 - Redis/RQ Compose service and dispatcher implemented; container CI verification pending push.
 - First CI run passed all unit/build checks and container startup but exposed a dispatcher module-path bug. Fixed enqueue/callback references to stable import paths; re-verification pending.
 - Second CI reached real analysis through PostgreSQL/RQ, but the Python-slim image lacked Node's C++ runtime library. Added libstdc++6 and a build-time TypeScript analyzer smoke check; re-verification pending.
+- Build-time TypeScript smoke passed, exposing a separate RQ import-root issue: the CLI loaded the installed Python copy, whose relative analyzer directory was absent. Set trusted `/app` on PYTHONPATH; container re-verification pending. The prior runtime-library hypothesis was not the complete cause.
 
 ## Current next action
 Push M0 without force, inspect Actions results, fix failures before advancing.

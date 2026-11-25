@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
+ENV PYTHONPATH=/app
 COPY pyproject.toml requirements.lock ./
 COPY codelens ./codelens
 RUN pip install --no-cache-dir -c requirements.lock . && useradd --uid 10001 --create-home codelens
