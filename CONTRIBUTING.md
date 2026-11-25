@@ -14,4 +14,4 @@ UI changes should include desktop and mobile screenshots, keyboard testing, and 
 
 By submitting a contribution, you agree it may be distributed under this project's Apache-2.0 license. No CLA is required. Maintainers review and merge changes manually.
 
-Suggested starter tasks: add rename/deletion diff fixtures, improve analyzer rule explanations, add UI interaction tests, improve setup troubleshooting, or expand accessibility coverage. These are suggestions, not claims of existing community issues.
+Suggested starter tasks: add multi-hunk rename/deletion diff fixtures, improve analyzer rule explanations, add UI interaction tests, improve setup troubleshooting, or expand accessibility coverage. These are suggestions, not claims of existing community issues.

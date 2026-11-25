@@ -71,3 +71,48 @@ def test_binary_and_size_limit(value):
     }
     with pytest.raises(GitHubError):
         github.content("test/repo", "a.py", "a" * 40, 1000)
+
+
+def test_mixed_file_statuses_and_safe_skips():
+    from codelens.github import SkipFile
+
+    github = fake_github()
+    patch = "@@ -0,0 +1 @@\n+print(missing)"
+    metadata = [
+        {
+            "filename": "src/renamed.py",
+            "previous_filename": "src/old.py",
+            "status": "renamed",
+            "patch": patch,
+        },
+        {"filename": "src/deleted.py", "status": "removed", "patch": patch},
+        {"filename": "src/data.py", "status": "modified"},
+        {"filename": "dist/generated.js", "status": "added", "patch": patch},
+        {"filename": "docs/readme.md", "status": "added", "patch": patch},
+        {"filename": "excluded/a.py", "status": "added", "patch": patch},
+        {"filename": "src/large.py", "status": "added", "patch": patch},
+    ]
+    github.request = (
+        lambda method, path: metadata
+        if "/files?" in path
+        else {"head": {"sha": "a" * 40}, "base": {"sha": "b" * 40}, "changed_files": len(metadata)}
+    )
+    fetched = []
+
+    def content(repo, path, sha, limit):
+        if path == ".codelens.yml":
+            raise FileNotFoundError()
+        fetched.append(path)
+        assert sha == "a" * 40
+        if path == "src/large.py":
+            raise SkipFile("Binary or oversized content")
+        return "print(missing)"
+
+    github.content = content
+    files, skipped, _ = github.retrieve(
+        "test/repo", 1, "a" * 40, RepoConfig(exclude=["excluded/*"])
+    )
+    assert [f["path"] for f in files] == ["src/renamed.py"]
+    assert fetched == ["src/renamed.py", "src/large.py"]
+    assert len(skipped) == 6
+    assert next(f for f in skipped if f["file"] == "src/deleted.py")["reason"] == "deleted file"

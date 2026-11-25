@@ -15,3 +15,7 @@ dist/
 work/
 *.tsbuildinfo
 compose.override.yaml
+
+# Database backups contain private reports and token hashes
+backups/
+*.dump

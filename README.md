@@ -63,7 +63,7 @@ In a second terminal, activate the same virtual environment and run from the rep
 python -m codelens.worker
 ```
 
-The Python environment must be activated so the worker can locate `ruff`. SQLite is suitable for one local worker. Use PostgreSQL for deployment or multiple workers. For frontend development, run `npm run dev --prefix web`; Vite proxies `/api` to port 8000.
+The Python environment must be activated so the worker can locate `ruff`. SQLite is suitable for one local worker. Use PostgreSQL for deployment; one worker is recommended for this beta. For frontend development, run `npm run dev --prefix web`; Vite proxies `/api` to port 8000.
 
 ## Repository access
 
@@ -114,6 +114,8 @@ ruff check .
 ruff format --check .
 pytest --cov=codelens --cov-report=term-missing
 npm test --prefix web
+npm run lint --prefix web
+npm run format:check --prefix web
 npm run build --prefix web
 ```
 
@@ -121,7 +123,7 @@ The Python suite covers signed webhooks, authorization, queue deduplication/reco
 
 ## Verification
 
-CI builds Compose, starts PostgreSQL/Redis/RQ, verifies analyzer network and credential isolation, and runs the sample twice. Tests cover signed webhook to persisted report, real adapters, authorization and dashboard interactions with synthetic data. See [implementation status](IMPLEMENTATION_STATUS.md) for evidence.
+CI builds Compose, starts PostgreSQL/Redis/RQ, verifies analyzer isolation, runs real sample reviews before and after restart, and checks a database backup restored into a separate database. Tests cover signed webhook to persisted report, real adapters, authorization and dashboard interactions with synthetic data. See [implementation status](IMPLEMENTATION_STATUS.md) for evidence.
 
 Browser visual verification and screenshots remain outstanding after a browser-tool denial. No live App installation, paid AI call, hosted demo, performance benchmark or external security audit is claimed.
 
@@ -145,10 +147,10 @@ The API, worker, and adapters share a modular Python package. PostgreSQL stores 
 
 ## Contribute
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [ROADMAP.md](ROADMAP.md). Small, reproducible fixes are welcome. Candidate first issues include filter UI tests, expanded diff fixtures, and analyzer documentation. Report sensitive vulnerabilities privately using GitHub private vulnerability reporting (enabled for this repository).
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [ROADMAP.md](ROADMAP.md). Small, reproducible fixes are welcome. Candidate first issues include keyboard accessibility coverage, expanded diff fixtures, and analyzer documentation. Report sensitive vulnerabilities privately using GitHub private vulnerability reporting (enabled for this repository).
 
 ## Portfolio use
 
-This is an original project, not evidence of a contribution accepted by another project's maintainer. Use the [portfolio guide](docs/portfolio.md) for accurate resume bullets, a demo script, and GitHub publishing steps. Add real measurements and links only after you have collected them.
+This is an original project, not evidence of a contribution accepted by another project's maintainer. Use the [portfolio guide](docs/portfolio.md) for accurate resume bullets, a demo script, and project presentation guidance. Add real measurements and links only after you have collected them.
 
 Licensed under [Apache-2.0](LICENSE). CodeLens assists human review; it does not guarantee defect or vulnerability detection.

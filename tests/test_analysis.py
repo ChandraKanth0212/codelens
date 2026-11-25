@@ -75,3 +75,22 @@ def test_deduplication():
     findings, errors = analyze([FILES[0], FILES[0]], RepoConfig())
     assert not errors
     assert len(findings) == len({f.fingerprint for f in findings})
+
+
+def test_analyzer_timeout_is_partial_and_redacted(monkeypatch):
+    import subprocess
+
+    import codelens.worker as worker
+
+    original = worker.lint
+
+    def timeout_js(path, content, lines, analyzer):
+        if analyzer == "eslint":
+            raise subprocess.TimeoutExpired("private-input", 20, output="sensitive output")
+        return original(path, content, lines, analyzer)
+
+    monkeypatch.setattr(worker, "lint", timeout_js)
+    findings, errors = worker.analyze(FILES, RepoConfig())
+    assert findings and errors
+    assert {f.analyzer for f in findings} == {"ruff"}
+    assert "private-input" not in str(errors) and "sensitive output" not in str(errors)

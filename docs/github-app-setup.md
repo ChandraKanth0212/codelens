@@ -108,3 +108,14 @@ Check login/error, empty overview, queued/running/completed/partial/failed repor
 ## 8. Evidence and cleanup
 
 Record results in IMPLEMENTATION_STATUS.md. Stop temporary relays, close unused fixture PRs after testing, and uninstall the App/revoke its key when no longer needed. Keep credentials outside Git. Do not create a release tag as part of this validation milestone.
+
+
+## Credential-free local webhook regression test
+
+After the contributor dependency setup, run:
+
+```sh
+pytest tests/test_validation_workflow.py tests/test_webhooks.py tests/test_jobs.py -q
+```
+
+These fixtures sign exact synthetic payloads, reject changed/missing signatures, exercise opened/synchronize/reopened, dispatch RQ jobs and run real analyzers before reading persisted reports through the authenticated API. They also cover duplicate deliveries/jobs and bounded failure handling. Redis storage and GitHub retrieval are test doubles; no App key, tunnel or external webhook is required. This is the safe local preflight, not proof of live GitHub installation.

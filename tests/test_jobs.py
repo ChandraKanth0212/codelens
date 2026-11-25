@@ -64,3 +64,39 @@ def test_old_generation_cannot_claim_new_review(db, monkeypatch):
     jobs.execute_review(run_id, 0)
     with db() as session:
         assert session.get(Run, run_id).status == "queued"
+
+
+def test_failure_callback_bounds_retries_and_ignores_old_generation(db, monkeypatch):
+    from types import SimpleNamespace
+
+    import codelens.jobs as jobs
+
+    monkeypatch.setattr(jobs, "Session", db)
+    with db() as session:
+        run = Run(
+            repository_id=1,
+            number=1,
+            title="Retry",
+            head_sha="c" * 40,
+            status="running",
+            attempts=1,
+            generation=2,
+        )
+        session.add(run)
+        session.commit()
+        run_id = run.id
+    error = RuntimeError("sensitive exception")
+    jobs.job_failed(SimpleNamespace(args=(run_id, 1)), None, RuntimeError, error, None)
+    with db() as session:
+        assert session.get(Run, run_id).status == "running"
+    jobs.job_failed(SimpleNamespace(args=(run_id, 2)), None, RuntimeError, error, None)
+    with db() as session:
+        run = session.get(Run, run_id)
+        assert run.status == "queued"
+        run.status, run.attempts = "running", 3
+        session.commit()
+    jobs.job_failed(SimpleNamespace(args=(run_id, 2)), None, RuntimeError, error, None)
+    with db() as session:
+        run = session.get(Run, run_id)
+        assert run.status == "failed" and run.completed_at
+        assert "sensitive exception" not in str(run.report)

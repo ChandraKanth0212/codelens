@@ -40,3 +40,53 @@ The API intentionally withholds raw exceptions because they may contain credenti
 ## Operational limitations
 
 One worker is recommended for the beta. No metrics backend, distributed quotas, OAuth, email, GitHub posting, or automatic updates are included. A clean report means no configured rule reported an added-line finding; it does not establish safety. The checked-in Compose configuration is for development and requires operator hardening before internet exposure.
+
+
+## Restart and persistence verification
+
+After a completed synthetic review, stop and restart services without removing volumes:
+
+```sh
+docker compose stop api worker dispatcher analyzer db redis
+docker compose up -d --wait
+docker compose ps
+```
+
+Sign in again, confirm the earlier completed report remains, then run another sample. PostgreSQL and Redis use named volumes; `docker compose down` preserves them, while `down -v` removes them and is unsuitable for keeping data. CI exercises this restart sequence and verifies both existing reports and new RQ/analyzer processing.
+
+For the automated operator check (POSIX shell, from the repository root):
+
+```sh
+docker compose exec -T api python - --require-existing < scripts/container_smoke.py
+```
+
+It checks API health, served frontend HTML, retained completed reports and two real analyzer reviews with AI disabled. It uses the container's configured token without displaying it. Omit `--require-existing` on a fresh instance. This verifies HTTP behavior, not browser rendering.
+
+## Backup and non-destructive restore rehearsal
+
+Backups contain repository metadata, reports, users and token hashes. Restrict access, encrypt off-host copies and apply retention. Never commit a dump. `backups/` and `*.dump` are ignored. Also securely back up operator configuration and the App key separately; do not include the transient analyzer spool. A database dump is not a copy of `.env` or your key.
+
+Pause inbound webhook traffic at the proxy, wait for queued/running work to finish, then stop application services for a consistent recovery point:
+
+```sh
+docker compose stop api dispatcher worker analyzer
+mkdir backups
+docker compose exec -T db pg_dump -U codelens -d codelens -Fc -f /tmp/codelens.dump
+docker compose cp db:/tmp/codelens.dump ./backups/codelens.dump
+docker compose up -d --wait
+```
+
+Use a timestamped destination for subsequent backups rather than overwriting the only copy. Remove the temporary container dump after securely exporting it. Resume inbound traffic after service health checks. `pg_dump` creates a consistent database snapshot; quiescing application writes makes it easier to reconcile pending jobs and webhook redeliveries.
+
+Rehearse into a **new** database. The following fails if the target already exists; it does not replace the running database:
+
+```sh
+docker compose cp ./backups/codelens.dump db:/tmp/codelens-restore.dump
+docker compose exec -T db createdb -U codelens codelens_restore_check
+docker compose exec -T db pg_restore -U codelens --no-owner --exit-on-error -d codelens_restore_check /tmp/codelens-restore.dump
+docker compose exec -T db psql -U codelens -d codelens_restore_check -c "SELECT count(*) FROM review_runs; SELECT count(*) FROM findings;"
+```
+
+The development database role can create databases; production restoration may require a database administrator. CI restores its synthetic snapshot into a separate database and compares finding counts.
+
+For actual disaster recovery, use a separate deployment with fresh volumes/Redis, restore the database, securely supply the matching configuration/key, point all application services at the restored database, and run migrations for the chosen application version. Validate health, user access and existing reports before switching ingress. Pending database jobs are redispatched; stale running jobs recover on the existing timeout/retry policy. Do not combine an arbitrary old Redis snapshot with a different database snapshot. Keep the old deployment intact until verification completes. Full production disaster recovery remains operator-specific; the automated test covers a synthetic database restore.

@@ -1,42 +1,33 @@
 # Implementation status
 
-Source of truth: Unified PRD v1.1 (including identical `(1)` attachment), read completely.
-Public repository and Apache-2.0 explicitly approved by the user: https://github.com/ChandraKanth0212/codelens.
-Existing baseline preserved; incremental commits, no force pushes.
+## Baseline and delivery
+- Final-completion baseline: `5fe39b5af45e5b390e48d1d5e4933896a222650f`, clean local main matched remote; CI [45626204960](https://github.com/ChandraKanth0212/codelens/actions/runs/45626204960) passed.
+- Repository: https://github.com/ChandraKanth0212/codelens — public, existing Apache-2.0 preserved. No force pushes, tags or GitHub Releases.
+- Versions agree: Python package, API and frontend are 0.1.0. Draft notes: docs/release-0.1.0.md.
 
-| Milestone | Verified state |
-| --- | --- |
-| M0 foundation | CI 45614994342 passed fresh PostgreSQL/Redis/RQ Compose startup and real sample analysis. |
-| M1 GitHub | CI 45616043924 passed. Signed events, immutable SHAs, identities, pagination/retries and PR history tested with synthetic fixtures. Live App installation awaits credentials. |
-| M2 engine | CI 45616710726 passed. Ruff/ESLint/detect-secrets, limits, skipped files and non-root network-denied analyzer verified. |
-| M3 dashboard | CI 45618424688 passed. Repository-scoped users, permissions, filters and component tests. Browser visual verification remains outstanding after prior tool denial. |
-| M4 optional AI | 66 backend tests passed locally. Strict structured advisory findings, alias/reference validation, bounded calls, no source transmission, safe failures. No paid provider calls made. CI 45619101629 passed all unit/build/container checks. |
-| M5 beta | Final documentation and private security reporting configured. Source delivery verified; CI 45619765151 passed for b9f9e5f. Version 0.1.0 is untagged; release requires approval. |
+## Implemented and verified
+- Signed App webhooks, delivery/head-SHA idempotency, opened/synchronize/reopened, durable PostgreSQL outbox/Redis RQ, immutable commit retrieval, bounded API retries/pagination.
+- Ruff/ESLint/detect-secrets, exclusions and resource budgets, offline non-root analyzer container, normalized/deduplicated findings, optional metadata-only advisory AI (off by default).
+- Repository-scoped authentication, dashboard and feedback, migrations, contributor/security docs and private vulnerability reporting.
+- Dedicated public synthetic test PRs: https://github.com/ChandraKanth0212/codelens-validation/pull/1 and /pull/2. Anonymous public-API retrieval and real analyzers found six expected rules; evidence in docs/validation-evidence.json. This is not live App authentication verification.
+- Final local backend run: **73 passed, 82% coverage**. Includes signed webhook -> RQ -> real analyzers -> stored report/API fixtures, mixed rename/delete/exclusion/oversize handling, analyzer timeout redaction, bounded retries and stale-generation callbacks.
+- Full frontend suite: **6 passed**. Backend/frontend lint and formatting, frontend production build, and SQLite migration upgrade/downgrade/upgrade all passed.
 
-## Remaining external acceptance
-- Live GitHub App installation and real webhook smoke require operator App credentials and reachable endpoint.
-- Browser visual/keyboard/mobile verification and screenshots are not claimed.
-- No hosted deployment or paid provider verification performed.
-- Docker/WSL unavailable locally; container checks run in GitHub Actions.
+## Final self-hosting work
+- Added scripts/container_smoke.py and CI checks for API/frontend serving, reports surviving stop/start, new analysis after restart, and PostgreSQL dump/restore into a separate database.
+- Added backup/restore/restart operator commands to docs/deployment.md; ignored backup directories/dumps. Existing App setup guide covers minimal permissions, safe credentials, webhook ingress and real-event acceptance.
+- Docker unavailable locally. Enhanced container checks must pass in GitHub Actions before being reported as verified.
 
-## Prior beta verification
-- Backend: 66 tests passed. Frontend: 6 tests passed, including completed review, filters, advisory detail and escaped output.
-- Python/TypeScript lint, formatting and production build passed; migrations upgrade/downgrade tested.
-- GitHub private vulnerability reporting enabled and read back as true.
-- Selected offline credential detectors scanned all 81 tracked files: no matches; no tracked .env/private keys/databases. This is not comprehensive secret detection.
-- npm production dependency audits for analyzer and web: zero reported vulnerabilities.
+## Exact verification commands
+- `ruff check .`; `ruff format --check .`
+- `pytest --cov=codelens --cov-report=term-missing`
+- `npm test --prefix web`; `npm run lint --prefix web`; `npm run format:check --prefix web`; `npm run build --prefix web`
+- `alembic upgrade head`; `alembic downgrade base`; `alembic upgrade head` against an isolated SQLite validation database.
+- CI: `docker compose up --build -d --wait`; real smoke script; stop/start and repeat; `pg_dump`, `createdb`, `pg_restore` and restored finding-count comparison. See .github/workflows/ci.yml for exact commands.
 
-## Real-world validation milestone — 2026-11-25
-
-- Inspected clean checkout, prior status, GitHub integration, webhook/RQ processing and configuration before changes.
-- Created dedicated public synthetic repository https://github.com/ChandraKanth0212/codelens-validation with Python PR #1 and TypeScript PR #2. No real credentials or private source included.
-- Actual public GitHub PR retrieval at pinned SHAs succeeded via anonymous API, using the existing retrieval adapter. Real Ruff/ESLint found all six expected rules, zero analyzer errors. See docs/validation-evidence.json. **This does not verify GitHub App authentication or live webhook delivery.**
-- Added full signed-event -> RQ -> real analyzer -> stored report -> authenticated dashboard API tests for opened/synchronize/reopened, completed-delivery replay and tampered/missing signatures. GitHub retrieval and Redis storage are test doubles in these tests.
-- Full backend suite: 70 passed, 81% coverage. Existing Starlette/httpx TestClient deprecation warning remains; no test failures.
-- Full frontend suite: 6 passed. Browser visual QA was attempted, but the tool rejected localhost due to a saved permission/managed policy and prohibited workarounds. No visual/responsive fixes or screenshots claimed without inspection.
-- Added docs/github-app-setup.md covering App registration, minimum permissions, keys, installation, ingress/relay, Docker setup, sample PRs, idempotency, troubleshooting and browser acceptance.
-- Missing local configuration: .env, App ID, private-key path, webhook secret and allowlist; a registered installation and reachable webhook endpoint are also needed. Do not send secret values in chat.
-- GitHub Actions run [45625666975](https://github.com/ChandraKanth0212/codelens/actions/runs/45625666975) passed for validation commit `a428803`: backend/frontend tests, lint/format/build, migration cycle, fresh Compose startup, analyzer isolation and repeated real sample reviews.
-- Frontend lint, formatting and production build passed locally. Preview process stopped after browser denial. No release tag created.
-
-Next milestone: finish live App acceptance on the prepared PRs and browser visual/mobile/keyboard QA once credentials/ingress and browser origin access are available. No additional product features required.
+## Outstanding acceptance and release
+- No live App credentials/configured .env: App ID, private-key path, matching webhook secret, installation/repository registration and reachable webhook endpoint needed. Follow docs/github-app-setup.md; never paste secret values into chat.
+- Browser visual/mobile/keyboard QA remains unavailable: saved browser-origin permission denied localhost and explicitly prohibits workarounds. Prior attempt documented; no rendered-app inspection or screenshots claimed. Frontend tests/build are not visual QA.
+- No hosted demo or paid AI call performed. Hosting is optional and does not block self-hosted delivery.
+- One existing Starlette/httpx TestClient deprecation warning; no failing local tests. One worker recommended; production lease fencing and exact distributed quotas remain deferred.
+- v0.1.0 candidate is prepared for owner review with these limitations. Full beta acceptance remains pending live App/browser checks. Do not tag or publish a Release without separate owner approval.

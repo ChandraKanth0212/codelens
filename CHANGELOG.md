@@ -7,5 +7,6 @@
 - Added repository-authorized dashboard, sample review, finding filters and feedback, and repository settings.
 - Added optional structured advisory AI with approved-location checks, retention cleanup, and repository deletion.
 - Added migrations, Compose, tests, CI, security documentation, and contribution guidance.
+- Added restart/persistence and isolated database restore CI checks, backup instructions, and timeout/retry/file-handling acceptance fixtures.
 
 Public Apache-2.0 source; version 0.1.0 remains an untagged beta pending approval. Live App installation and browser visual acceptance remain outstanding.
