@@ -22,7 +22,7 @@ An open-source, self-hosted pull request review assistant. CodeLens runs determi
 Requirements: Docker Engine with Compose v2, Python 3.11+ for the secret-generation helper.
 
 ```sh
-git clone <YOUR-REPOSITORY-URL>
+git clone https://github.com/ChandraKanth0212/codelens.git
 cd codelens
 python scripts/setup.py
 docker compose up --build -d
@@ -39,7 +39,7 @@ The local Compose database password is a development-only value on an unexposed 
 
 ## Quick start: without Docker
 
-Requirements: Python 3.11–3.13, Node.js 22+, npm.
+Requirements: Python 3.13, Node.js 22.13+, npm, Redis 7. Docker Compose is the recommended setup; the direct worker below is a developer-only shortcut without RQ isolation.
 
 ```sh
 python -m venv .venv
@@ -123,7 +123,7 @@ flowchart LR
   DB --> UI[Authenticated React dashboard]
 ```
 
-The API, worker, and adapters share a modular Python package. PostgreSQL acts as both storage and a durable queue, avoiding a separate Redis dependency and a database/queue dual-write failure. See [architecture decisions](docs/architecture.md), [security boundaries](SECURITY.md), and the [scope checklist](docs/scope.md).
+The API, worker, and adapters share a modular Python package. PostgreSQL stores a durable job outbox; a dispatcher enqueues committed runs into Redis/RQ. Redis never receives source code or tokens. See [current architecture decision](docs/architecture/0007-unified-prd-foundation.md), [security boundaries](SECURITY.md), and [implementation status](IMPLEMENTATION_STATUS.md).
 
 ## Contribute
 

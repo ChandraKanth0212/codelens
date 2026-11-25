@@ -3,6 +3,7 @@ x-app: &app
   env_file: .env
   environment:
     CODELENS_DATABASE_URL: postgresql+psycopg://codelens:codelens-local@db:5432/codelens
+    CODELENS_REDIS_URL: redis://redis:6379/0
   read_only: true
   tmpfs:
     - /tmp:size=64m,mode=1777
@@ -13,6 +14,17 @@ x-app: &app
   pids_limit: 128
 
 services:
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
   db:
     image: postgres:17-alpine
     environment:
@@ -45,10 +57,19 @@ services:
       retries: 3
   worker:
     <<: *app
-    command: [python, -m, codelens.worker]
+    command: [rq, worker, --url, "redis://redis:6379/0", --serializer, rq.serializers.JSONSerializer, --with-scheduler, reviews]
     depends_on:
       migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+  dispatcher:
+    <<: *app
+    command: [python, -m, codelens.jobs]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
     restart: unless-stopped
 
 volumes:
   postgres-data:
+  redis-data:

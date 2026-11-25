@@ -1,5 +1,7 @@
 # Architecture decisions
 
+Historical beta decisions below are superseded where noted by [ADR-007](architecture/0007-unified-prd-foundation.md). Unified PRD v1.1 work and verified milestone state are tracked in [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md).
+
 ## ADR-001: Modular monolith
 
 **Accepted.** FastAPI serves the API and built React/TypeScript assets. A separately started worker imports the same Python modules. SQLAlchemy handles persistence and Alembic records schema history. This keeps deployments understandable while preserving adapter boundaries. There is no user-code execution service.

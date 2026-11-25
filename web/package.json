@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "node ../analyzer/node_modules/eslint/bin/eslint.js src --config eslint.config.mjs",
+    "format:check": "prettier --check src vite.config.ts index.html"
   },
   "dependencies": {
     "lucide-react": "0.511.0",
