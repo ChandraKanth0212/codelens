@@ -22,13 +22,13 @@ def queue():
     return Queue("reviews", connection=connection, serializer=JSONSerializer)
 
 
-def execute_review(run_id: int):
+def execute_review(run_id: int, generation: int):
     from codelens.worker import process_run
 
     with Session() as session:
         result = session.execute(
             update(Run)
-            .where(Run.id == run_id, Run.status == "queued")
+            .where(Run.id == run_id, Run.generation == generation, Run.status == "queued")
             .values(status="running", started_at=now(), attempts=Run.attempts + 1)
         )
         session.commit()
@@ -41,7 +41,7 @@ def job_failed(job, connection, exception_type, exception, traceback):
     # Never persist exception text or RQ tracebacks in dashboard reports.
     with Session() as session:
         run = session.get(Run, int(job.args[0]))
-        if run and run.status == "running":
+        if run and run.generation == job.args[1] and run.status == "running":
             run.status = "queued" if run.attempts < 3 else "failed"
             if run.status == "failed":
                 run.completed_at = now()
@@ -54,12 +54,13 @@ def dispatch_pending(session, target_queue=None):
     rows = session.scalars(select(Run).where(Run.status == "queued").order_by(Run.id).limit(100))
     dispatched = 0
     for run in rows:
-        job_id = f"review-{run.id}-attempt-{run.attempts}"
+        job_id = f"review-{run.id}-generation-{run.generation}-attempt-{run.attempts}"
         if target.fetch_job(job_id):
             continue
         target.enqueue(
             "codelens.jobs.execute_review",
             run.id,
+            run.generation,
             job_id=job_id,
             unique=True,
             job_timeout=settings().job_timeout,

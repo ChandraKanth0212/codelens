@@ -16,6 +16,10 @@ class GitHubError(Exception):
     pass
 
 
+class GitHubTransientError(GitHubError):
+    """Safe error eligible for bounded job retry."""
+
+
 class GitHub:
     def __init__(self, config: Settings, installation: int):
         if not config.github_app_id or not config.github_private_key_path:
@@ -45,23 +49,58 @@ class GitHub:
 
     def request(self, method: str, path: str):
         for attempt in range(3):
-            with self.client.stream(method, path) as response:
-                if response.status_code >= 500 and attempt < 2:
-                    time.sleep(2**attempt)
-                    continue
-                if response.status_code == 404:
-                    raise FileNotFoundError("GitHub resource not found")
-                if response.status_code >= 400:
-                    raise GitHubError(f"GitHub request failed ({response.status_code})")
-                data = bytearray()
-                for part in response.iter_bytes():
-                    data.extend(part)
-                    if len(data) > 2_000_000:
-                        raise GitHubError("GitHub response exceeded size limit")
-                import json
+            try:
+                with self.client.stream(method, path) as response:
+                    rate_limited = response.status_code == 429 or (
+                        response.status_code == 403
+                        and (
+                            response.headers.get("x-ratelimit-remaining") == "0"
+                            or "retry-after" in response.headers
+                        )
+                    )
+                    if response.status_code >= 500 or rate_limited:
+                        if attempt == 2:
+                            raise GitHubTransientError("GitHub rate limit or temporary outage")
+                        try:
+                            delay = min(
+                                5, max(1, float(response.headers.get("retry-after", 2**attempt)))
+                            )
+                        except ValueError:
+                            delay = 2**attempt
+                        time.sleep(delay)
+                        continue
+                    if response.status_code == 404:
+                        raise FileNotFoundError("GitHub resource not found")
+                    if response.status_code >= 300:
+                        raise GitHubError(f"GitHub request failed ({response.status_code})")
+                    data = bytearray()
+                    for part in response.iter_bytes():
+                        data.extend(part)
+                        if len(data) > 2_000_000:
+                            raise GitHubError("GitHub response exceeded size limit")
+                    import json
 
-                return json.loads(data)
-        raise GitHubError("GitHub unavailable")
+                    return json.loads(data)
+            except (httpx.TimeoutException, httpx.NetworkError):
+                if attempt == 2:
+                    raise GitHubTransientError("GitHub connection timed out") from None
+                time.sleep(2**attempt)
+        raise GitHubTransientError("GitHub unavailable")
+
+    def changed_files(self, repo: str, number: int, limit: int):
+        files = []
+        for page in range(1, 5):
+            batch = self.request(
+                "GET", f"/repos/{repo}/pulls/{number}/files?per_page=30&page={page}"
+            )
+            if not isinstance(batch, list):
+                raise GitHubError("Invalid changed-file response")
+            files.extend(batch)
+            if len(files) > limit:
+                raise GitHubError("Changed file count exceeds configured limit")
+            if len(batch) < 30:
+                return files
+        raise GitHubError("Changed file pagination limit exceeded")
 
     def content(self, repo: str, path: str, sha: str, limit: int) -> str:
         result = self.request("GET", f"/repos/{repo}/contents/{quote(path, safe='/')}?ref={sha}")
@@ -103,9 +142,9 @@ class GitHub:
             base_config = config
         if not config.enabled:
             return [], [{"file": "*", "reason": "review disabled"}], config
-        files = self.request("GET", f"/repos/{repo}/pulls/{number}/files?per_page=100")
-        if len(files) > config.max_files:
-            raise GitHubError("Changed file count exceeds configured limit")
+        files = self.changed_files(repo, number, config.max_files)
+        if len(files) != pr["changed_files"]:
+            raise GitHubError("Changed-file response incomplete or PR changed during pagination")
         reviewed, skipped, total = [], [], 0
         for file in files:
             path = file["filename"]

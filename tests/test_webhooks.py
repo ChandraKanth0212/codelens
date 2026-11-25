@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import func, select
 
-from codelens.db import Delivery, Run
+from codelens.db import Delivery, GitHubInstallation, PullRequest, Repository, Run
 from tests.conftest import signed
 
 
@@ -19,15 +19,21 @@ def test_duplicate_delivery_and_commit(client, payload, db):
     with db() as session:
         assert session.scalar(select(func.count()).select_from(Run)) == 1
         assert session.scalar(select(func.count()).select_from(Delivery)) == 2
+        assert session.scalar(select(PullRequest)).base_sha == "b" * 40
+        assert session.scalar(select(GitHubInstallation)).github_installation_id == 123
+        assert session.get(Repository, 1).github_repository_id == 321
+        assert session.get(Delivery, "a").event_metadata["action"] == "opened"
     payload["pull_request"]["head"]["sha"] = "b" * 40
     payload["action"] = "synchronize"
     assert client.post("/api/v1/webhooks/github", **signed(payload, "c")).status_code == 202
     with db() as session:
         assert session.scalar(select(func.count()).select_from(Run)) == 2
+        assert session.scalar(select(func.count()).select_from(PullRequest)) == 1
 
 
 @pytest.mark.parametrize(
-    "field,value", [("installation", {"id": 999}), ("repository", {"full_name": "evil/repo"})]
+    "field,value",
+    [("installation", {"id": 999}), ("repository", {"full_name": "evil/repo", "id": 321})],
 )
 def test_repository_authorization(client, payload, field, value):
     payload[field] = value

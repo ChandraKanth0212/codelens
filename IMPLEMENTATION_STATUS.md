@@ -11,9 +11,9 @@ Source of truth: CodeLens Unified PRD v1.1, read in full on 2026-11-25.
 ## Milestones
 | Milestone | State | Remaining |
 | --- | --- | --- |
-| M0 foundation | In progress | Redis/RQ, frontend lint/format, fresh setup checks, push and verified CI. |
-| M1 GitHub | Existing baseline; audit pending | Complete PR/base-SHA/event persistence, pagination/rate limits and retry tests. |
-| M2 analysis | Existing baseline; audit pending | Network-isolated runner, bounded processing, accurate skip reasons. |
+| M0 foundation | Verified | CI run 45614994342 passed unit/build checks and fresh PostgreSQL/Redis/RQ container review at d776fb9. |
+| M1 GitHub | Implemented; local tests passed | 51 backend tests and migration upgrade/downgrade/re-upgrade passed. Live App install awaits credentials; CI queued on push. |
+| M2 analysis | In progress | Network-isolated runner, bounded processing, accurate skip reasons. |
 | M3 dashboard/auth | Existing baseline; audit pending | Object-level user authorization, filters, browser tests. |
 | M4 AI | Existing limited adapter; audit pending | PRD structured findings, reference validation, privacy/failure tests. |
 | M5 beta | Pending | Final security/docs/demo checks; verified GitHub delivery. Release tag requires approval. |
@@ -34,4 +34,4 @@ Source of truth: CodeLens Unified PRD v1.1, read in full on 2026-11-25.
 - Build-time TypeScript smoke passed, exposing a separate RQ import-root issue: the CLI loaded the installed Python copy, whose relative analyzer directory was absent. Set trusted `/app` on PYTHONPATH; container re-verification pending. The prior runtime-library hypothesis was not the complete cause.
 
 ## Current next action
-Push M0 without force, inspect Actions results, fix failures before advancing.
+Implement M2 sandboxed analyzer service and resource/skip tests. Live GitHub App credentials remain absent; no live App review claimed.

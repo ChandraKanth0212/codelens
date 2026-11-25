@@ -9,7 +9,7 @@ from codelens.analyzers import lint, secrets
 from codelens.db import Delivery, FindingRecord, Repository, Run, Session, now
 from codelens.demo import FILES
 from codelens.diffs import added_lines
-from codelens.github import GitHub
+from codelens.github import GitHub, GitHubTransientError
 from codelens.schemas import RepoConfig
 from codelens.settings import settings
 
@@ -110,6 +110,9 @@ def process_run(run_id: int, session_factory=Session):
                 "config": config.model_dump(),
                 "notice": "Findings are review assistance, not proof of safety or vulnerability.",
             }
+        except GitHubTransientError:
+            # RQ applies bounded backoff; callback retains a safe state for the next attempt.
+            raise RuntimeError("GitHub temporarily unavailable; review retry requested") from None
         except Exception:
             # Exception strings may contain sensitive provider responses or source.
             run.status = "failed"

@@ -50,3 +50,17 @@ def test_redis_outage_keeps_durable_job(db):
         with pytest.raises(ConnectionError):
             dispatch_pending(session, Unavailable())
         assert session.get(Run, run.id).status == "queued"
+
+
+def test_old_generation_cannot_claim_new_review(db, monkeypatch):
+    import codelens.jobs as jobs
+
+    monkeypatch.setattr(jobs, "Session", db)
+    with db() as session:
+        run = Run(repository_id=1, number=1, title="Rerun", head_sha="a" * 40, generation=1)
+        session.add(run)
+        session.commit()
+        run_id = run.id
+    jobs.execute_review(run_id, 0)
+    with db() as session:
+        assert session.get(Run, run_id).status == "queued"

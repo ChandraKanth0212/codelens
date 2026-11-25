@@ -10,7 +10,15 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 
-from codelens.db import Delivery, FindingRecord, Repository, Run, get_session
+from codelens.db import (
+    Delivery,
+    FindingRecord,
+    GitHubInstallation,
+    PullRequest,
+    Repository,
+    Run,
+    get_session,
+)
 from codelens.schemas import Feedback, RepoConfig, RepositoryInput
 from codelens.settings import settings
 
@@ -123,6 +131,7 @@ def delete_repository(repo_id: int, session=Depends(get_session)):
     session.execute(delete(FindingRecord).where(FindingRecord.run_id.in_(ids)))
     session.execute(delete(Delivery).where(Delivery.run_id.in_(ids)))
     session.execute(delete(Run).where(Run.repository_id == repo_id))
+    session.execute(delete(PullRequest).where(PullRequest.repository_id == repo_id))
     session.delete(repo)
     session.commit()
 
@@ -135,6 +144,8 @@ def run_dict(run, repo):
         "number": run.number,
         "title": run.title,
         "head_sha": run.head_sha,
+        "base_sha": run.base_sha,
+        "pull_request_id": run.pull_request_id,
         "status": run.status,
         "is_demo": run.is_demo,
         "created_at": run.created_at,
@@ -204,6 +215,7 @@ def demo(session=Depends(get_session)):
         run.report = {}
         run.completed_at = None
         run.attempts = 0
+        run.generation += 1
     session.commit()
     return {"run_id": run.id}
 
@@ -235,25 +247,73 @@ async def webhook(request: Request, session=Depends(get_session)):
         if event.get("action") not in {"opened", "synchronize", "reopened"}:
             return {"ignored": True}
         name = event["repository"]["full_name"].lower()
+        github_repo_id = int(event["repository"]["id"])
         installation = int(event["installation"]["id"])
         pr = event["pull_request"]
         sha, title, number = pr["head"]["sha"], pr["title"], int(pr["number"])
-        if not re.fullmatch(r"[0-9a-f]{40}", sha) or not isinstance(title, str) or number < 1:
+        base_sha = pr["base"]["sha"]
+        if (
+            not re.fullmatch(r"[0-9a-f]{40}", sha)
+            or not re.fullmatch(r"[0-9a-f]{40}", base_sha)
+            or not isinstance(title, str)
+            or number < 1
+            or github_repo_id < 1
+        ):
             raise ValueError()
     except (ValueError, KeyError, TypeError, AttributeError):
         raise HTTPException(400, "Malformed pull request event") from None
     repo = session.scalar(
-        select(Repository).where(
-            Repository.full_name == name, Repository.installation_id == installation
-        )
+        select(Repository)
+        .where(Repository.full_name == name, Repository.installation_id == installation)
+        .with_for_update()
     )
     if not repo or not settings().allows(name):
         raise HTTPException(403, "Repository or installation is not authorized")
+    if repo.github_repository_id not in (None, github_repo_id):
+        raise HTTPException(403, "Repository identity mismatch")
     if not RepoConfig.model_validate(repo.config).enabled:
         return {"ignored": True, "reason": "Repository disabled"}
     duplicate = session.get(Delivery, delivery_id)
     if duplicate:
         return {"run_id": duplicate.run_id, "duplicate": True}
+    install = session.scalar(
+        select(GitHubInstallation).where(GitHubInstallation.github_installation_id == installation)
+    )
+    if not install:
+        try:
+            with session.begin_nested():
+                install = GitHubInstallation(
+                    github_installation_id=installation, account_login=name.split("/")[0]
+                )
+                session.add(install)
+                session.flush()
+        except IntegrityError:
+            install = session.scalar(
+                select(GitHubInstallation).where(
+                    GitHubInstallation.github_installation_id == installation
+                )
+            )
+    repo.installation_record_id = install.id
+    repo.github_repository_id = github_repo_id
+    repo.default_branch = str(event["repository"].get("default_branch", "main"))[:256]
+    pull = session.scalar(
+        select(PullRequest).where(
+            PullRequest.repository_id == repo.id, PullRequest.number == number
+        )
+    )
+    if not pull:
+        pull = PullRequest(
+            repository_id=repo.id,
+            number=number,
+            title=title[:512],
+            html_url=f"https://github.com/{name}/pull/{number}",
+            head_sha=sha,
+            base_sha=base_sha,
+        )
+        session.add(pull)
+    else:
+        pull.title, pull.head_sha, pull.base_sha = title[:512], sha, base_sha
+    session.flush()
     run = session.scalar(
         select(Run).where(Run.repository_id == repo.id, Run.number == number, Run.head_sha == sha)
     )
@@ -263,11 +323,30 @@ async def webhook(request: Request, session=Depends(get_session)):
         )
         if pending >= settings().max_queue:
             raise HTTPException(429, "Queue is full; redeliver this event later")
-        run = Run(repository_id=repo.id, number=number, title=title[:512], head_sha=sha)
+        run = Run(
+            repository_id=repo.id,
+            number=number,
+            title=title[:512],
+            head_sha=sha,
+            base_sha=base_sha,
+            pull_request_id=pull.id,
+        )
         session.add(run)
     try:
         session.flush()
-        session.add(Delivery(id=delivery_id, run_id=run.id))
+        session.add(
+            Delivery(
+                id=delivery_id,
+                run_id=run.id,
+                event_metadata={
+                    "action": event["action"],
+                    "repository_id": github_repo_id,
+                    "installation_id": installation,
+                    "head_sha": sha,
+                    "base_sha": base_sha,
+                },
+            )
+        )
         session.commit()
     except IntegrityError:
         session.rollback()
@@ -279,6 +358,53 @@ async def webhook(request: Request, session=Depends(get_session)):
         if not run:
             raise HTTPException(409, "Concurrent delivery; retry") from None
     return {"run_id": run.id}
+
+
+@app.get("/api/v1/repositories/{repo_id}", dependencies=protected)
+def repository_detail(repo_id: int, session=Depends(get_session)):
+    repo = session.get(Repository, repo_id)
+    if not repo:
+        raise HTTPException(404, "Repository not found")
+    return {
+        "id": repo.id,
+        "full_name": repo.full_name,
+        "github_repository_id": repo.github_repository_id,
+        "installation_id": repo.installation_id,
+        "default_branch": repo.default_branch,
+        "config": RepoConfig.model_validate(repo.config).model_dump(),
+    }
+
+
+def pr_dict(pull):
+    return {
+        "id": pull.id,
+        "repository_id": pull.repository_id,
+        "number": pull.number,
+        "title": pull.title,
+        "url": pull.html_url,
+        "head_sha": pull.head_sha,
+        "base_sha": pull.base_sha,
+        "state": pull.state,
+        "updated_at": pull.updated_at,
+    }
+
+
+@app.get("/api/v1/pull-requests", dependencies=protected)
+def pull_requests(session=Depends(get_session)):
+    return [
+        pr_dict(pull)
+        for pull in session.scalars(
+            select(PullRequest).order_by(PullRequest.updated_at.desc()).limit(100)
+        )
+    ]
+
+
+@app.get("/api/v1/pull-requests/{pr_id}", dependencies=protected)
+def pull_request_detail(pr_id: int, session=Depends(get_session)):
+    pull = session.get(PullRequest, pr_id)
+    if not pull:
+        raise HTTPException(404, "Pull request not found")
+    return pr_dict(pull)
 
 
 dist = Path(__file__).resolve().parent.parent / "web" / "dist"

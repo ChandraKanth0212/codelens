@@ -59,9 +59,14 @@ def auth():
 def payload():
     return {
         "action": "opened",
-        "repository": {"full_name": "test/repository"},
+        "repository": {"full_name": "test/repository", "id": 321},
         "installation": {"id": 123},
-        "pull_request": {"number": 1, "title": "Test change", "head": {"sha": "a" * 40}},
+        "pull_request": {
+            "number": 1,
+            "title": "Test change",
+            "head": {"sha": "a" * 40},
+            "base": {"sha": "b" * 40},
+        },
     }
 
 
