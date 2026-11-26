@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-26",
+  "scope": "Internal source/data-flow review and dependency advisory scans; not independent penetration testing",
+  "python": {
+    "command": "pip-audit -r requirements.lock --no-deps --disable-pip",
+    "pins": 51,
+    "remaining_advisories": 0,
+    "skipped": 0,
+    "remediation": "pytest 8.4.2 -> 9.0.3 (CVE-2025-71176; development dependency)"
+  },
+  "npm": {
+    "commands": [
+      "npm audit --prefix web --json",
+      "npm audit --prefix analyzer --json"
+    ],
+    "remaining_advisories": 0,
+    "includes_dev_dependencies": true
+  },
+  "source_scan": {
+    "tracked_files": 86,
+    "detectors": [
+      "GitHubTokenDetector",
+      "AWSKeyDetector",
+      "PrivateKeyDetector"
+    ],
+    "matches": 0,
+    "limitation": "Pattern scan is not comprehensive secret detection"
+  },
+  "fixes": [
+    "Reject known example admin/webhook secrets",
+    "Hide settings validation input values",
+    "Exclude backup dumps and local overrides from Docker build context"
+  ],
+  "not_verified": [
+    "Live App credentials/installation/real delivery",
+    "Rendered desktop/mobile browser behavior",
+    "Independent penetration test",
+    "Container OS advisory scan"
+  ]
+}

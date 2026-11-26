@@ -6,7 +6,7 @@
 
 An open-source, self-hosted pull request review assistant. CodeLens runs deterministic checks on changed Python, JavaScript, and TypeScript code and presents evidence in a focused review workspace. Optional AI explains rule metadata; humans make every decision.
 
-**Status:** 0.1.0 untagged beta. Repository-scoped local user access. A reproducible demo is included. Live GitHub App setup requires your credentials; this repository does not claim production adoption or a completed third-party security audit.
+**Status:** 0.1.0 unreleased beta; public launch postponed. Live App and browser acceptance are pending. Repository-scoped local user access. A reproducible demo is included. Live GitHub App setup requires your credentials; this repository does not claim production adoption or a completed third-party security audit.
 
 ## What works
 
@@ -29,6 +29,8 @@ cd codelens
 python scripts/setup.py
 docker compose up --build -d
 ```
+
+Use `python scripts/setup.py` to generate credentials; copying `.env.example` unchanged is rejected. Existing `.env` files are never overwritten.
 
 Open **http://localhost:8000**. Copy `CODELENS_ADMIN_TOKEN` from your local `.env`, sign in, and select **Run sample review**. The worker reviews synthetic Python and TypeScript files through the real adapters. You should see an undefined Python name, `eval`, an unused import, a TypeScript unused variable, and loose equality. The sample is labelled and contains no real repository or credential data.
 

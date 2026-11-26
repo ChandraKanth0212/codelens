@@ -26,3 +26,14 @@ Source temporarily exists in memory and the spool volume. Requests are removed b
 Only supported text files, added lines and selected rules are reviewed. There is no full type check, dependency-vulnerability scan or comprehensive secret detection. Metadata may disclose technology choices. Provider retention follows account terms; `store: false` is not a zero-retention guarantee.
 
 Queue admission is a soft cap. Apply a proxy 1 MB body limit and rate limits. One worker is recommended until lease fencing is added. Deletion cannot retract provider metadata or operator backups. No external security audit or measured production performance is claimed.
+
+
+## 2026-11-26 release-readiness review
+
+Review scope: bootstrap credentials, object-level authorization, signature/delivery checks, fixed analyzer commands and stripped environments, network/resource isolation, transient source handling, AI data minimization and safe error paths. Regression tests cover these boundaries; this is an internal code review, not an independent penetration test.
+
+Fixed: documented example admin/webhook credentials now fail validation instead of allowing a predictable authentication secret. Settings validation messages hide input values. Docker build context excludes backup dumps, backup directories, environment variants and local Compose overrides. Backups may contain private reports and user token hashes; Git ignores alone do not protect remote build contexts.
+
+Live App permission/authentication and rendered browser checks remain paused pending operator configuration/access. No release-readiness or comprehensive-security claim is made while acceptance checks remain incomplete.
+
+Dependency review identified [CVE-2025-71176](https://github.com/advisories/GHSA-6w46-j5rx-g56g) in the pinned developer-only pytest version. Updated pytest to patched 9.0.3 and its development constraint; application runtime dependencies are unchanged. Audit results are point-in-time advisory checks, not proof that dependencies are vulnerability-free.

@@ -32,3 +32,16 @@
 - No hosted demo or paid AI call performed. Hosting is optional and does not block self-hosted delivery.
 - One existing Starlette/httpx TestClient deprecation warning; no failing local tests. One worker recommended; production lease fencing and exact distributed quotas remain deferred.
 - v0.1.0 candidate is prepared for owner review with these limitations. Full beta acceptance remains pending live App/browser checks. Do not tag or publish a Release without separate owner approval.
+
+
+## Release-readiness audit — 2026-11-26
+- Baseline `ceb01ac` matched remote main with clean tree; CI 45628519486 passed. Public launch is postponed; no tag, Release or announcement authorized. **Not release-ready** until every acceptance check below has evidence.
+- Live App task paused: no local .env/App ID/key path/webhook secret/allowlist. Need safe local configuration, installation ID/registration and reachable webhook endpoint. Existing public PR tests do not prove App authentication/delivery.
+- Browser task paused: saved origin-denial policy has not been lifted; no workaround or rendered desktop/mobile inspection claimed. Exact origin required: http://127.0.0.1:8000.
+- Security review found example credentials were accepted if .env.example was copied directly. Added fail-closed validation and redacted validation errors, with regression tests. Also excluded backups/dumps/local overrides from Docker build context. 75 backend tests passed (83% coverage); all 6 frontend tests and frontend lint/format/build passed.
+- Fresh ephemeral Ubuntu CI covers clean checkout, Docker build/startup, persistence/restart and isolated restore. Local Docker remains unavailable; other OS installation coverage is not claimed.
+
+- Operator explicitly paused live App and browser QA on 2026-11-26 until local configuration and browser permission are supplied; continue independent work only. No credentials requested or stored in chat.
+
+- Python advisory review: upgraded developer pytest to 9.0.3 for CVE-2025-71176. Re-audit of all 51 pinned packages: zero known advisories, zero skipped packages. Full npm audits (including development dependencies) also report zero advisories. See docs/security-review-2026-11-26.json for scope/limitations.
+- Source review and selected offline credential-pattern scan found no tracked secret/database artifacts or detector matches. This is not comprehensive detection or an independent security certification.

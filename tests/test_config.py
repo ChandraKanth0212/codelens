@@ -17,3 +17,17 @@ def test_allowlist_uses_exact_case_insensitive_names():
     config = Settings(allowed_repositories=" Owner/Repository, another/repo ")
     assert config.allows("owner/repository")
     assert not config.allows("owner/repository-other")
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("admin_token", "replace-with-a-random-token-at-least-32-characters"),
+        ("webhook_secret", "replace-with-another-random-secret"),
+    ],
+)
+def test_example_credentials_fail_closed_without_logging_values(field, value):
+    with pytest.raises(ValidationError) as error:
+        Settings(**{field: value})
+    assert value not in str(error.value)
+    assert "Replace example credentials" in str(error.value)

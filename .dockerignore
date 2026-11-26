@@ -11,3 +11,9 @@
 *.db-*
 *.pem
 work
+
+# Never send sensitive backups or local overrides to the build daemon
+backups
+**/*.dump
+compose.override.yaml
+.env.*

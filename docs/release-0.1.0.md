@@ -1,6 +1,6 @@
 # Proposed v0.1.0 release notes
 
-Status: release candidate prepared for owner review, with live App and browser acceptance still outstanding; no tag or GitHub Release created. PRD section 11 requires user approval before tagging.
+Status: public launch postponed; not release-ready while live App and browser acceptance remain outstanding; no tag or GitHub Release created. PRD section 11 requires user approval before tagging.
 
 CodeLens is a self-hostable PR review assistant with signed GitHub App ingestion, exact commit tracking, PostgreSQL/Redis/RQ jobs, isolated Ruff/ESLint/detect-secrets, repository-scoped local users, a React review dashboard and optional schema-validated advisory AI. Apache-2.0 licensed.
 

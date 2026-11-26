@@ -21,7 +21,7 @@ The non-root worker must be able to read the mounted file. Prefer a secrets mana
 
 | Symptom | Check |
 | --- | --- |
-| Startup refuses to run | Set a random operator token at least 32 characters long. |
+| Startup refuses to run | Run `python scripts/setup.py` for a new installation; known example credentials are rejected. For an existing `.env`, replace placeholder values locally with independent random secrets. The setup helper does not overwrite existing configuration. |
 | Run remains queued | Check `docker compose logs dispatcher worker analyzer redis`. For the non-Docker shortcut, start `python -m codelens.worker`. |
 | Ruff/ESLint partial result | Activate the venv; run `npm ci --prefix analyzer`; confirm Node is in PATH. |
 | Webhook 401 | Match the App secret to the server; preserve the exact raw request body. |
