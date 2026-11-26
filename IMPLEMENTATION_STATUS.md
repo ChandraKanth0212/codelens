@@ -10,7 +10,7 @@
 - Ruff/ESLint/detect-secrets, exclusions and resource budgets, offline non-root analyzer container, normalized/deduplicated findings, optional metadata-only advisory AI (off by default).
 - Repository-scoped authentication, dashboard and feedback, migrations, contributor/security docs and private vulnerability reporting.
 - Dedicated public synthetic test PRs: https://github.com/ChandraKanth0212/codelens-validation/pull/1 and /pull/2. Anonymous public-API retrieval and real analyzers found six expected rules; evidence in docs/validation-evidence.json. This is not live App authentication verification.
-- Final local backend run: **73 passed, 82% coverage**. Includes signed webhook -> RQ -> real analyzers -> stored report/API fixtures, mixed rename/delete/exclusion/oversize handling, analyzer timeout redaction, bounded retries and stale-generation callbacks.
+- Latest local backend run: **75 passed, 83% coverage**. Includes signed webhook -> RQ -> real analyzers -> stored report/API fixtures, mixed rename/delete/exclusion/oversize handling, analyzer timeout redaction, bounded retries and stale-generation callbacks.
 - Full frontend suite: **6 passed**. Backend/frontend lint and formatting, frontend production build, and SQLite migration upgrade/downgrade/upgrade all passed.
 
 ## Final self-hosting work
@@ -31,7 +31,7 @@
 - Browser visual/mobile/keyboard QA remains unavailable: saved browser-origin permission denied localhost and explicitly prohibits workarounds. Prior attempt documented; no rendered-app inspection or screenshots claimed. Frontend tests/build are not visual QA.
 - No hosted demo or paid AI call performed. Hosting is optional and does not block self-hosted delivery.
 - One existing Starlette/httpx TestClient deprecation warning; no failing local tests. One worker recommended; production lease fencing and exact distributed quotas remain deferred.
-- v0.1.0 candidate is prepared for owner review with these limitations. Full beta acceptance remains pending live App/browser checks. Do not tag or publish a Release without separate owner approval.
+- **Not release-ready.** Public launch is postponed. Live App/browser acceptance remains pending; no tag, Release or announcement is authorized.
 
 
 ## Release-readiness audit — 2026-11-26
@@ -45,3 +45,18 @@
 
 - Python advisory review: upgraded developer pytest to 9.0.3 for CVE-2025-71176. Re-audit of all 51 pinned packages: zero known advisories, zero skipped packages. Full npm audits (including development dependencies) also report zero advisories. See docs/security-review-2026-11-26.json for scope/limitations.
 - Source review and selected offline credential-pattern scan found no tracked secret/database artifacts or detector matches. This is not comprehensive detection or an independent security certification.
+
+
+## Current acceptance evidence (2026-11-26)
+
+| Criterion | State and evidence |
+| --- | --- |
+| Real App installation / PR review | **Paused, unverified** by operator instruction. Await safe local configuration and installation/endpoint details. |
+| Webhooks / background processing | **Verified in fixtures and Compose**: signed events, deduplication, RQ dispatch, real analyzers, persisted reports, retry limits. Actual GitHub delivery remains part of the paused App check. |
+| Desktop / mobile browser QA | **Paused, unverified** until browser origin access is explicitly permitted. No workaround or visual-pass claim. |
+| Fresh Docker installation | **Verified on fresh Ubuntu GitHub runner with Docker preinstalled**: clean checkout without .env, generated configuration, build/startup, serving frontend/API, isolation, restart/persistence, backup/restore. Windows/macOS Docker installation not tested. |
+| Security / privacy | **Internal review completed and fixes verified**; known template secrets rejected, settings errors redacted, private build-context files excluded, developer dependency advisory patched. Audits: 51 Python pins and both npm trees report zero known advisories. Not an independent penetration test or container OS audit. |
+| Documentation / onboarding | **Updated** setup diagnostics, release hold, security findings and evidence. Commands exercised by CI; human/browser onboarding remains unverified. |
+| Regression / CI | **Passed**: 75 backend tests, 6 frontend tests, lint/format/build, migrations and container checks. [CI 45793044102](https://github.com/ChandraKanth0212/codelens/actions/runs/45793044102) verified implementation commit `4c44086`. |
+
+No tag, GitHub Release or announcement created. Only source and acceptance documentation were pushed. Remaining gating work resumes when the operator supplies configuration/access; no new product features are needed.
